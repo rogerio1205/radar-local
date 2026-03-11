@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}
+  {% if mode == "edit" %}Editar Produto{% else %}Novo Produto{% endif %} - Vendas1
+{% endblock %}
+
+{% block content %}
+  <div class="card" style="margin-bottom:20px;">
+    <h1 style="margin-top:0;">
+      {% if mode == "edit" %}Editar Produto{% else %}Novo Produto{% endif %}
+    </h1>
+    <p class="muted" style="margin-bottom:0;">
+      {% if mode == "edit" %}
+        Atualize as informações do produto da sua empresa.
+      {% else %}
+        Cadastre um novo produto para sua empresa.
+      {% endif %}
+    </p>
+  </div>
+
+  <div style="display:grid; grid-template-columns:260px 1fr; gap:20px; align-items:start;">
+
+    <aside class="card">
+      <h3 style="margin-top:0;">Menu da Empresa</h3>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <a class="btn2" href="/empresa/dashboard" style="text-align:center;">Painel</a>
+        <a class="btn2" href="/empresa/produtos" style="text-align:center;">Produtos</a>
+        <a class="btn2" href="/empresa/pedidos" style="text-align:center;">Pedidos</a>
+        <a class="btn2" href="/empresa/clientes" style="text-align:center;">Clientes</a>
+        <a class="btn2" href="/empresa/dados" style="text-align:center;">Dados</a>
+      </div>
+    </aside>
+
+    <section class="card">
+      <h2 style="margin-top:0;">
+        {% if mode == "edit" %}Atualizar produto{% else %}Cadastrar produto{% endif %}
+      </h2>
+
+      {% if mode == "edit" %}
+        <form method="post" enctype="multipart/form-data" action="/empresa/produtos/{{ produto.id }}/editar">
+      {% else %}
+        <form method="post" enctype="multipart/form-data" action="/empresa/produtos/novo">
+      {% endif %}
+
+        <div style="display:grid; gap:16px;">
+
+          <div style="display:grid; grid-template-columns:1fr 2fr; gap:16px;">
+            <div>
+              <label>Código</label>
+              <input
+                name="code"
+                value="{{ produto.code if produto and produto.code else '' }}"
+                style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+              >
+            </div>
+
+            <div>
+              <label>Nome do produto</label>
+              <input
+                name="name"
+                required
+                value="{{ produto.name if produto else '' }}"
+                style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+              >
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div>
+              <label>Categoria</label>
+              <input
+                name="category"
+                value="{{ produto.category if produto and produto.category else '' }}"
+                style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+              >
+            </div>
+
+            <div>
+              <label>Unidade de medida</label>
+              <select
+                name="unit"
+                style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+              >
+                {% set current_unit = produto.unit if produto and produto.unit else 'un' %}
+                <option value="un" {% if current_unit == "un" %}selected{% endif %}>Unidade</option>
+                <option value="kg" {% if current_unit == "kg" %}selected{% endif %}>Kg</option>
+                <option value="g" {% if current_unit == "g" %}selected{% endif %}>Grama</option>
+                <option value="litro" {% if current_unit == "litro" %}selected{% endif %}>Litro</option>
+                <option value="ml" {% if current_unit == "ml" %}selected{% endif %}>ML</option>
+                <option value="caixa" {% if current_unit == "caixa" %}selected{% endif %}>Caixa</option>
+                <option value="saco" {% if current_unit == "saco" %}selected{% endif %}>Saco</option>
+                <option value="pacote" {% if current_unit == "pacote" %}selected{% endif %}>Pacote</option>
+                <option value="bandeja" {% if current_unit == "bandeja" %}selected{% endif %}>Bandeja</option>
+                <option value="duzia" {% if current_unit == "duzia" %}selected{% endif %}>Dúzia</option>
+                <option value="milheiro" {% if current_unit == "milheiro" %}selected{% endif %}>Milheiro</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label>Descrição do produto</label>
+            <textarea
+              name="description"
+              style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;min-height:110px;"
+            >{{ produto.description if produto and produto.description else '' }}</textarea>
+          </div>
+
+          <div>
+            <label>Foto do produto</label>
+            <input
+              type="file"
+              name="image"
+              accept="image/*"
+              style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+            >
+
+            {% if produto and produto.image %}
+              <div style="margin-top:10px;">
+                <img
+                  src="/static/uploads/produtos/{{ produto.image }}"
+                  style="max-width:180px;border-radius:10px;border:1px solid #2a3445;"
+                >
+              </div>
+            {% endif %}
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div>
+              <label>Peso / referência</label>
+              <input
+                name="weight"
+                value="{{ produto.weight if produto and produto.weight else '' }}"
+                placeholder="Ex: 1kg, 500g, caixa com 12"
+                style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+              >
+            </div>
+
+            <div>
+              <label>Preço por unidade</label>
+              <input
+                name="price"
+                type="number"
+                step="0.01"
+                required
+                value="{{ produto.price if produto else '' }}"
+                style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+              >
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div>
+              <label>Estoque atual</label>
+              <input
+                name="stock"
+                type="number"
+                value="{{ produto.stock if produto else 0 }}"
+                style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+              >
+            </div>
+
+            <div>
+              <label>Estoque mínimo</label>
+              <input
+                name="min_stock"
+                type="number"
+                value="{{ produto.min_stock if produto and produto.min_stock is not none else 0 }}"
+                style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+              >
+            </div>
+          </div>
+
+          <div>
+            <label style="display:flex;align-items:center;gap:8px;">
+              <input
+                type="checkbox"
+                name="active"
+                style="width:auto;"
+                {% if produto %}
+                  {% if produto.active %}checked{% endif %}
+                {% else %}
+                  checked
+                {% endif %}
+              >
+              Produto ativo
+            </label>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+            {% if mode == "edit" %}
+              <button class="btn" type="submit">Salvar alterações</button>
+            {% else %}
+              <button class="btn" type="submit">Salvar produto</button>
+            {% endif %}
+            <a class="btn2" href="/empresa/produtos">Voltar para produtos</a>
+          </div>
+
+        </div>
+      </form>
+    </section>
+
+  </div>
+{% endblock %}

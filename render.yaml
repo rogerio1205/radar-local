@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: radar-local
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./vendas.db
+      - key: SECRET_KEY
+        value: radar-local-chave-super-segura-2026
+      - key: ADMIN_EMAILS
+        value: app1205@hotmail.com
+      - key: AUTO_CREATE_DB
+        value: "1"
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: ENVIRONMENT
+        value: production
+      - key: APP_NAME
+        value: RADAR LOCAL

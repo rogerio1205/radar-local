@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Clientes da Empresa{% endblock %}
+
+{% block content %}
+  <div class="card" style="margin-bottom:20px;">
+    <h1 style="margin-top:0;">Clientes da Empresa</h1>
+    <p class="muted" style="margin-bottom:0;">
+      Clientes que já compraram da sua loja.
+    </p>
+  </div>
+
+  <style>
+    .empresa-layout{
+      display:grid;
+      grid-template-columns:260px 1fr;
+      gap:20px;
+      align-items:start;
+    }
+    .empresa-menu{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .table-wrap{
+      overflow-x:auto;
+      width:100%;
+    }
+    .empresa-table{
+      width:100%;
+      min-width:700px;
+      border-collapse:collapse;
+    }
+    .empresa-table th,
+    .empresa-table td{
+      padding:12px;
+      text-align:left;
+      border-bottom:1px solid #1b2330;
+      vertical-align:middle;
+    }
+    .empresa-table th{
+      border-bottom:1px solid #2a3445;
+    }
+
+    @media (max-width: 900px){
+      .empresa-layout{
+        grid-template-columns:1fr;
+      }
+      .empresa-table{
+        min-width:620px;
+      }
+    }
+  </style>
+
+  <div class="empresa-layout">
+
+    <aside class="card">
+      <h3 style="margin-top:0;">Menu da Empresa</h3>
+
+      <div class="empresa-menu">
+        <a class="btn2" href="/empresa/dashboard" style="text-align:center;">Painel</a>
+        <a class="btn2" href="/empresa/produtos" style="text-align:center;">Produtos</a>
+        <a class="btn2" href="/empresa/pedidos" style="text-align:center;">Pedidos</a>
+        <a class="btn2" href="/empresa/clientes" style="text-align:center;">Clientes</a>
+        <a class="btn2" href="/empresa/dados" style="text-align:center;">Dados</a>
+      </div>
+    </aside>
+
+    <section class="card">
+      <h2 style="margin-top:0;">Lista de clientes</h2>
+
+      {% if clientes and clientes|length > 0 %}
+        <div class="table-wrap">
+          <table class="empresa-table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Telefone</th>
+                <th>Pedidos</th>
+                <th>Total gasto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in clientes %}
+              <tr>
+                <td>{{ c.name }}</td>
+                <td>{{ c.phone or "-" }}</td>
+                <td>{{ c.orders }}</td>
+                <td>R$ {{ "%.2f"|format(c.total) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="muted" style="margin-bottom:0;">Nenhum cliente encontrado ainda.</p>
+      {% endif %}
+    </section>
+
+  </div>
+{% endblock %}

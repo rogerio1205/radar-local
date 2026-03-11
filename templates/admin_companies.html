@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Admin - Empresas - Vendas1{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin-top:0;margin-bottom:6px;">Empresas</h2>
+      <div class="muted">Monitoramento de empresas cadastradas</div>
+      <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+        <span class="badge badge-blue">Total: <strong>{{ total }}</strong></span>
+        <span class="badge badge-yellow">Pendentes: <strong>{{ pending }}</strong></span>
+        <span class="badge badge-green">Aprovadas: <strong>{{ approved }}</strong></span>
+        <span class="badge badge-red">Bloqueadas: <strong>{{ blocked }}</strong></span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a class="btn2" href="/admin">Voltar ao dashboard</a>
+      <a class="btn2" href="/">Ver portal</a>
+    </div>
+  </div>
+</div>
+
+<br>
+
+<div class="card">
+  <h3 style="margin-top:0;">Lista</h3>
+
+  {% if companies and companies|length > 0 %}
+    <table style="width:100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:10px; border-bottom:1px solid #1b2330;">ID</th>
+          <th style="text-align:left; padding:10px; border-bottom:1px solid #1b2330;">Empresa</th>
+          <th style="text-align:left; padding:10px; border-bottom:1px solid #1b2330;">Email</th>
+          <th style="text-align:left; padding:10px; border-bottom:1px solid #1b2330;">Status</th>
+          <th style="text-align:left; padding:10px; border-bottom:1px solid #1b2330;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in companies %}
+          <tr>
+            <td style="padding:10px; border-bottom:1px solid #1b2330;">{{ c.id }}</td>
+            <td style="padding:10px; border-bottom:1px solid #1b2330;">{{ c.name }}</td>
+            <td style="padding:10px; border-bottom:1px solid #1b2330;">{{ c.email }}</td>
+            <td style="padding:10px; border-bottom:1px solid #1b2330;">
+              {% if c.status == 'approved' %}
+                <span class="badge badge-green">approved</span>
+              {% elif c.status == 'blocked' %}
+                <span class="badge badge-red">blocked</span>
+              {% else %}
+                <span class="badge badge-yellow">pending</span>
+              {% endif %}
+            </td>
+            <td style="padding:10px; border-bottom:1px solid #1b2330;">
+              <form method="post" action="/admin/empresas/{{ c.id }}/aprovar" style="display:inline;">
+                <button class="btn2" type="submit">Aprovar</button>
+              </form>
+              <form method="post" action="/admin/empresas/{{ c.id }}/bloquear" style="display:inline; margin-left:8px;">
+                <button class="btn2" type="submit">Bloquear</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="muted">Nenhuma empresa cadastrada ainda.</div>
+  {% endif %}
+</div>
+{% endblock %}

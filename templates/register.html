@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}RADAR LOCAL - Criar conta{% endblock %}
+
+{% block content %}
+  <div class="card" style="max-width:520px;">
+    <h2 style="margin-top:0;">Criar conta no RADAR LOCAL</h2>
+
+    <p class="muted" style="line-height:1.6; margin-bottom:18px;">
+      Cadastre-se gratuitamente para encontrar fornecedores,
+      comprar produtos na sua região e acompanhar seus pedidos.
+    </p>
+
+    <form method="post" action="/register">
+
+      <label>Nome</label><br>
+      <input
+        name="name"
+        required
+        style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+      ><br><br>
+
+      <label>Email</label><br>
+      <input
+        name="email"
+        type="email"
+        required
+        style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+      ><br><br>
+
+      <label>Região</label><br>
+      <input
+        name="region"
+        required
+        placeholder="Ex: São Paulo - SP"
+        style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+      ><br><br>
+
+      <label>Telefone</label><br>
+      <input
+        name="phone"
+        placeholder="Opcional"
+        style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+      ><br><br>
+
+      <label>Endereço</label><br>
+      <input
+        name="address"
+        placeholder="Opcional"
+        style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+      ><br><br>
+
+      <label>Senha</label><br>
+      <input
+        name="password"
+        type="password"
+        required
+        style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+      ><br><br>
+
+      <button class="btn" type="submit">Criar conta</button>
+
+      <a class="btn2" href="/login" style="margin-left:8px;">
+        Já tenho conta
+      </a>
+
+    </form>
+  </div>
+{% endblock %}

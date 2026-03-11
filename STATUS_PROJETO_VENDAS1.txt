@@ -1,0 +1,84 @@
+PROJETO: Vendas1
+
+PADRÃO DE TRABALHO
+- Sempre usar CCT (Copia e Cola Total)
+- Sempre enviar código completo
+- Sempre no formato passo a passo
+- Nunca fazer alteração parcial
+
+STACK
+- FastAPI
+- Jinja2
+- SQLAlchemy
+- SQLite
+
+ESTRUTURA ATUAL
+- / = home nova
+- /acesso = acessos
+- /lojas = lista de lojas
+- /loja/{id} = loja pública
+- /mapa = mapa com filtros
+- /cart = carrinho
+- /meus-pedidos = pedidos do cliente
+
+PAINEL EMPRESA
+- /empresa/dashboard = ok
+- /empresa/produtos = ok
+- /empresa/pedidos = ok
+- /empresa/clientes = ok
+- /empresa/dados = ok
+
+MAPA
+- filtro por país = ok
+- filtro por estado = ok
+- filtro por cidade = ok
+- filtro por bairro = ok
+- busca específica = ok
+- pontos no mapa = ok
+- Google Maps/Waze = ok
+- navegação na loja = ok
+
+PRODUTOS
+- code = ok
+- description = ok
+- unit = ok
+- stock = ok
+- min_stock = ok
+- image = ok
+- upload de imagem = ok
+
+EMPRESA
+- country = ok
+- state = ok
+- city = ok
+- neighborhood = ok
+- address = ok
+- specialties = ok
+- pix_key = ok
+- map_link = ok
+- latitude = ok
+- longitude = ok
+- logo = em andamento
+
+UPLOADS
+- static/uploads/produtos = ok
+- static/uploads/logos = ok
+
+VISUAL
+- manter layout atual
+- manter menu lateral
+- manter preço em real com vírgula
+
+REGRA DE CONTINUIDADE
+- Sempre continuar do ponto atual
+- Nunca reiniciar arquitetura já pronta
+- Sempre trabalhar em CCT
+
+PRÓXIMO PASSO
+- concluir logo da empresa
+- exibir logo em:
+  /empresa/dashboard
+  /loja/{id}
+  /lojas
+  /mapa
+  /

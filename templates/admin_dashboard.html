@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}RADAR LOCAL - Administração da Plataforma{% endblock %}
+
+{% block content %}
+  <style>
+    .admin-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:20px;
+    }
+    .admin-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+      gap:16px;
+    }
+    .admin-card{
+      background:#11151b;
+      border:1px solid #1b2330;
+      border-radius:14px;
+      padding:16px;
+    }
+    .admin-kpi-label{
+      font-size:13px;
+      opacity:.8;
+      margin-bottom:8px;
+    }
+    .admin-kpi-value{
+      font-size:28px;
+      font-weight:800;
+      line-height:1.1;
+    }
+    .admin-kpi-help{
+      margin-top:8px;
+      font-size:12px;
+      opacity:.7;
+    }
+    .admin-section-title{
+      margin:0 0 8px 0;
+    }
+    .admin-section-text{
+      margin:0;
+      opacity:.85;
+      line-height:1.6;
+    }
+    .admin-list{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+      gap:16px;
+    }
+    .admin-list ul{
+      margin:10px 0 0 18px;
+      padding:0;
+      line-height:1.8;
+    }
+    .admin-table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:8px;
+    }
+    .admin-table th,
+    .admin-table td{
+      text-align:left;
+      padding:12px;
+      border-bottom:1px solid #1b2330;
+      vertical-align:top;
+    }
+    .admin-table th{
+      font-size:12px;
+      opacity:.75;
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+    .badge{
+      display:inline-block;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid #2a3445;
+    }
+    .badge-blue{border-color:#2d6cdf;color:#cfe0ff}
+    .badge-green{border-color:#22c55e;color:#c9f7d7}
+    .badge-yellow{border-color:#f59e0b;color:#ffe6b6}
+    .badge-red{border-color:#ef4444;color:#ffd1d1}
+    .admin-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+  </style>
+
+  <div class="admin-wrap">
+
+    <div class="card">
+      <h1 style="margin-top:0; margin-bottom:10px;">Administração RADAR LOCAL</h1>
+      <p class="muted" style="margin-bottom:16px; line-height:1.7;">
+        Esta área é destinada à administração da plataforma RADAR LOCAL.
+        O administrador acompanha o portal, aprova empresas, corrige problemas estruturais
+        e mantém o funcionamento geral do sistema.
+        Dados privados das empresas, como financeiro, PIX, clientes e operação comercial interna,
+        não fazem parte deste painel.
+      </p>
+
+      <div class="admin-actions">
+        <a class="btn" href="/admin">Dashboard</a>
+        <a class="btn2" href="/admin/orders">Pedidos da plataforma</a>
+        <a class="btn2" href="/admin/products">Produtos para manutenção</a>
+        <a class="btn2" href="/mapa">Ver portal</a>
+      </div>
+    </div>
+
+    <div class="admin-grid">
+      <div class="admin-card">
+        <div class="admin-kpi-label">Empresas cadastradas</div>
+        <div class="admin-kpi-value">{{ metrics.total_companies if metrics else 0 }}</div>
+        <div class="admin-kpi-help">Total geral de empresas na plataforma.</div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-kpi-label">Empresas aprovadas</div>
+        <div class="admin-kpi-value">{{ metrics.approved_companies if metrics else 0 }}</div>
+        <div class="admin-kpi-help">Empresas liberadas para operar no portal.</div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-kpi-label">Empresas pendentes</div>
+        <div class="admin-kpi-value">{{ metrics.pending_companies if metrics else 0 }}</div>
+        <div class="admin-kpi-help">Empresas aguardando análise.</div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-kpi-label">Empresas inativas</div>
+        <div class="admin-kpi-value">{{ metrics.inactive_companies if metrics else 0 }}</div>
+        <div class="admin-kpi-help">Empresas fora de operação no portal.</div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-kpi-label">Usuários cadastrados</div>
+        <div class="admin-kpi-value">{{ metrics.total_users if metrics else 0 }}</div>
+        <div class="admin-kpi-help">Base total de usuários da plataforma.</div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-kpi-label">Pedidos da plataforma</div>
+        <div class="admin-kpi-value">{{ metrics.total_orders if metrics else 0 }}</div>
+        <div class="admin-kpi-help">Contagem geral para monitoramento do portal.</div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-kpi-label">Pedidos hoje</div>
+        <div class="admin-kpi-value">{{ metrics.orders_today if metrics else 0 }}</div>
+        <div class="admin-kpi-help">Movimento diário da plataforma.</div>
+      </div>
+    </div>
+
+    <div class="admin-list">
+      <div class="card">
+        <h2 class="admin-section-title">O que o administrador pode fazer</h2>
+        <p class="admin-section-text">
+          O administrador atua sobre a plataforma e sua governança.
+        </p>
+        <ul>
+          <li>Acompanhar empresas cadastradas e pendentes</li>
+          <li>Corrigir falhas estruturais e erros técnicos</li>
+          <li>Melhorar cadastro, navegação e funcionamento geral</li>
+          <li>Monitorar pedidos em visão global de suporte</li>
+          <li>Fazer manutenção técnica em produtos quando necessário</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2 class="admin-section-title">O que o administrador não pode ver</h2>
+        <p class="admin-section-text">
+          A operação privada da empresa continua sendo restrita ao próprio fornecedor.
+        </p>
+        <ul>
+          <li>PIX e dados financeiros privados da empresa</li>
+          <li>Vendas detalhadas e faturamento interno da empresa</li>
+          <li>Clientes privados da empresa</li>
+          <li>Relatórios internos da empresa</li>
+          <li>Painel privado da empresa como se fosse o dono</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Resumo operacional do portal</h2>
+
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Indicador</th>
+            <th>Valor</th>
+            <th>Uso no admin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Empresas cadastradas</td>
+            <td><span class="badge badge-blue">{{ metrics.total_companies if metrics else 0 }}</span></td>
+            <td>Governança e liberação de empresas</td>
+          </tr>
+          <tr>
+            <td>Empresas aprovadas</td>
+            <td><span class="badge badge-green">{{ metrics.approved_companies if metrics else 0 }}</span></td>
+            <td>Controle de operação pública no portal</td>
+          </tr>
+          <tr>
+            <td>Empresas pendentes</td>
+            <td><span class="badge badge-yellow">{{ metrics.pending_companies if metrics else 0 }}</span></td>
+            <td>Fila de análise administrativa</td>
+          </tr>
+          <tr>
+            <td>Empresas inativas</td>
+            <td><span class="badge badge-red">{{ metrics.inactive_companies if metrics else 0 }}</span></td>
+            <td>Acompanhamento de status do portal</td>
+          </tr>
+          <tr>
+            <td>Usuários cadastrados</td>
+            <td>{{ metrics.total_users if metrics else 0 }}</td>
+            <td>Crescimento da plataforma</td>
+          </tr>
+          <tr>
+            <td>Pedidos da plataforma</td>
+            <td>{{ metrics.total_orders if metrics else 0 }}</td>
+            <td>Saúde geral do portal</td>
+          </tr>
+          <tr>
+            <td>Pedidos hoje</td>
+            <td>{{ metrics.orders_today if metrics else 0 }}</td>
+            <td>Movimento diário da plataforma</td>
+          </tr>
+          <tr>
+            <td>Série 7 dias</td>
+            <td>{{ series_7|length if series_7 else 0 }} registros</td>
+            <td>Monitoramento recente</td>
+          </tr>
+          <tr>
+            <td>Série 30 dias</td>
+            <td>{{ series_30|length if series_30 else 0 }} registros</td>
+            <td>Visão ampliada do comportamento do portal</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+{% endblock %}

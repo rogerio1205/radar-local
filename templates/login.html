@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}RADAR LOCAL - Entrar{% endblock %}
+
+{% block content %}
+  <div class="card" style="max-width:520px;">
+    <h2 style="margin-top:0;">Entrar no RADAR LOCAL</h2>
+
+    <p class="muted" style="line-height:1.6; margin-bottom:18px;">
+      Acesse sua conta para continuar sua busca por fornecedores,
+      comprar produtos, acessar rotas das lojas e acompanhar seus pedidos.
+    </p>
+
+    <form method="post" action="/login">
+      <input type="hidden" name="next_url" value="{{ next_url }}">
+
+      <label>Email</label><br>
+      <input
+        name="email"
+        type="email"
+        required
+        style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+      ><br><br>
+
+      <label>Senha</label><br>
+      <input
+        name="password"
+        type="password"
+        required
+        style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+      ><br><br>
+
+      <button class="btn" type="submit">Entrar</button>
+      <a class="btn2" href="/register" style="margin-left:8px;">Criar conta</a>
+    </form>
+
+    <div class="card" style="margin-top:18px;">
+      <h3 style="margin-top:0;">Ainda não tem conta?</h3>
+
+      <p class="muted" style="margin-bottom:14px;">
+        Crie sua conta gratuitamente no RADAR LOCAL e encontre fornecedores,
+        produtos e serviços disponíveis na sua região.
+      </p>
+
+      <a class="btn" href="/register">Cadastrar agora</a>
+    </div>
+  </div>
+{% endblock %}

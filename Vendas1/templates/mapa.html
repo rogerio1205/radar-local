@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Mapa de Lojas - Vendas1{% endblock %}
+
+{% block content %}
+  <div class="card" style="margin-bottom:20px;">
+    <h1 style="margin-top:0;">Mapa de Lojas</h1>
+    <p class="muted" style="margin-bottom:0;">
+      Encontre fornecedores locais por localização e por necessidade específica.
+    </p>
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <h2 style="margin-top:0;">Filtrar lojas</h2>
+
+    <form method="get" action="/mapa">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:16px;">
+        <div>
+          <label>País</label>
+          <input type="text" name="pais" value="{{ filtros.pais if filtros else '' }}" placeholder="Ex: Brasil" style="width:100%; padding:10px; border-radius:10px; border:1px solid #2a3445;">
+        </div>
+
+        <div>
+          <label>Estado</label>
+          <input type="text" name="estado" value="{{ filtros.estado if filtros else '' }}" placeholder="Ex: SP" style="width:100%; padding:10px; border-radius:10px; border:1px solid #2a3445;">
+        </div>
+
+        <div>
+          <label>Cidade</label>
+          <input type="text" name="cidade" value="{{ filtros.cidade if filtros else '' }}" placeholder="Ex: São Paulo" style="width:100%; padding:10px; border-radius:10px; border:1px solid #2a3445;">
+        </div>
+
+        <div>
+          <label>Bairro</label>
+          <input type="text" name="bairro" value="{{ filtros.bairro if filtros else '' }}" placeholder="Ex: Centro" style="width:100%; padding:10px; border-radius:10px; border:1px solid #2a3445;">
+        </div>
+
+        <div style="grid-column:1 / -1;">
+          <label>O que você procura?</label>
+          <input type="text" name="q" value="{{ filtros.q if filtros else '' }}" placeholder="Ex: alevinos, peixe para lago, tilápia, ração" style="width:100%; padding:10px; border-radius:10px; border:1px solid #2a3445;">
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn" type="submit">Aplicar filtro</button>
+        <a class="btn2" href="/mapa">Limpar filtro</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <h2 style="margin-top:0;">Mapa das lojas</h2>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <div id="mapa-lojas" style="height:420px; border-radius:12px; overflow:hidden; border:1px solid #2a3445;"></div>
+
+    <p class="muted" style="margin-top:12px; margin-bottom:0;">
+      Se uma loja não aparecer no mapa, basta preencher latitude e longitude em “Dados da Empresa”.
+    </p>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+      <div>
+        <h2 style="margin:0;">Lojas encontradas</h2>
+        <p class="muted" style="margin:6px 0 0 0;">Escolha uma loja para visualizar os produtos.</p>
+      </div>
+
+      <div>
+        <a class="btn2" href="/lojas">Ver lista completa</a>
+      </div>
+    </div>
+
+    {% if lojas and lojas|length > 0 %}
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+        {% for loja in lojas %}
+          {% set endereco_nav = (loja.address or '') ~ ', ' ~ (loja.neighborhood or '') ~ ', ' ~ (loja.city or '') ~ ', ' ~ (loja.state or '') ~ ', ' ~ (loja.country or '') %}
+          <div class="card">
+            {% if loja.logo %}
+              <div style="margin-bottom:12px;">
+                <img
+                  src="/static/uploads/logos/{{ loja.logo }}"
+                  style="width:80px; height:80px; object-fit:contain; border-radius:12px; background:#fff; padding:6px; border:1px solid #2a3445;"
+                >
+              </div>
+            {% endif %}
+
+            <h3 style="margin-top:0; margin-bottom:8px;">{{ loja.name }}</h3>
+
+            <p class="muted" style="margin:0 0 10px 0;">
+              {{ loja.description or "Fornecedor local cadastrado no Vendas1." }}
+            </p>
+
+            {% if loja.specialties %}
+              <p class="muted" style="margin:0 0 10px 0;">
+                <strong>Especialidades:</strong> {{ loja.specialties }}
+              </p>
+            {% endif %}
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+              {% if loja.city %}
+                <span class="badge badge-blue">
+                  {{ loja.city }}{% if loja.state %} - {{ loja.state }}{% endif %}
+                </span>
+              {% endif %}
+
+              {% if loja.phone %}
+                <span class="badge badge-green">
+                  {{ loja.phone }}
+                </span>
+              {% endif %}
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <a class="btn" href="/loja/{{ loja.id }}">Ver loja</a>
+
+              {% if loja.latitude and loja.longitude %}
+                <a
+                  class="btn2"
+                  href="https://www.google.com/maps/search/?api=1&query={{ loja.latitude }},{{ loja.longitude }}"
+                  target="_blank"
+                >
+                  Google Maps
+                </a>
+
+                <a
+                  class="btn2"
+                  href="https://waze.com/ul?ll={{ loja.latitude }},{{ loja.longitude }}&navigate=yes"
+                  target="_blank"
+                >
+                  Waze
+                </a>
+              {% else %}
+                {% if loja.address or loja.city or loja.state %}
+                  <a
+                    class="btn2"
+                    href="https://www.google.com/maps/search/?api=1&query={{ endereco_nav | urlencode }}"
+                    target="_blank"
+                  >
+                    Google Maps
+                  </a>
+
+                  <a
+                    class="btn2"
+                    href="https://waze.com/ul?q={{ endereco_nav | urlencode }}&navigate=yes"
+                    target="_blank"
+                  >
+                    Waze
+                  </a>
+                {% endif %}
+              {% endif %}
+
+              {% if loja.map_link %}
+                <a class="btn2" href="{{ loja.map_link }}" target="_blank">Abrir mapa</a>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted" style="margin-bottom:0;">Nenhuma loja encontrada com esse filtro.</p>
+    {% endif %}
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const pontos = [
+      {% for p in pontos %}
+      {
+        id: {{ p.id }},
+        name: "{{ p.name|replace('"', '\\"') }}",
+        city: "{{ p.city|replace('"', '\\"') }}",
+        state: "{{ p.state|replace('"', '\\"') }}",
+        lat: parseFloat("{{ p.latitude }}"),
+        lng: parseFloat("{{ p.longitude }}")
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    const mapa = L.map('mapa-lojas').setView([-14.2350, -51.9253], 4);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(mapa);
+
+    if (pontos.length > 0) {
+      const bounds = [];
+
+      pontos.forEach(p => {
+        const googleUrl = `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`;
+        const wazeUrl = `https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes`;
+
+        const marker = L.marker([p.lat, p.lng]).addTo(mapa);
+        marker.bindPopup(`
+          <strong>${p.name}</strong><br>
+          ${p.city}${p.state ? " - " + p.state : ""}<br><br>
+          <a href="/loja/${p.id}">Ver loja</a><br>
+          <a href="${googleUrl}" target="_blank">Google Maps</a><br>
+          <a href="${wazeUrl}" target="_blank">Waze</a>
+        `);
+
+        bounds.push([p.lat, p.lng]);
+      });
+
+      mapa.fitBounds(bounds, { padding: [30, 30] });
+    }
+  </script>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Pagamento PIX - Vendas1{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2 style="margin-top:0;">Pagamento via PIX</h2>
+  <div class="muted">Pedido #{{ order.id }} — Total: <strong>R$ {{ "%.2f"|format(order.total or 0) }}</strong></div>
+
+  <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:16px; align-items:flex-start;">
+    <div class="card" style="max-width:360px;">
+      <div class="muted" style="margin-bottom:10px;">Escaneie o QR Code:</div>
+
+      <img
+        src="/payment/pix/{{ order.id }}/qr"
+        alt="QR PIX"
+        style="width:280px;height:280px;border-radius:12px;border:1px solid #1b2330;background:#fff;"
+      >
+
+      <div class="muted" style="margin-top:10px;">
+        Status do pagamento:
+        <span class="badge badge-yellow">{{ order.payment_status or "pendente" }}</span>
+      </div>
+    </div>
+
+    <div class="card" style="flex:1; min-width:280px;">
+      <h3 style="margin-top:0;">Como finalizar</h3>
+      <ol class="muted">
+        <li>Abra o app do seu banco</li>
+        <li>Escolha PIX → “Pagar com QR Code”</li>
+        <li>Escaneie o QR Code</li>
+        <li>Confirme o pagamento</li>
+      </ol>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="muted" style="margin-bottom:8px;">PIX “copia e cola” (MVP)</div>
+
+        <textarea id="pixCode" readonly
+          style="width:100%;min-height:90px;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+        >{{ pix_payload }}</textarea>
+
+        <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <button class="btn" type="button" onclick="copyPix()">Copiar código PIX</button>
+          <span id="copyMsg" class="muted"></span>
+        </div>
+      </div>
+
+      <form method="post" action="/payment/pix/{{ order.id }}/confirm" style="margin-top:14px;">
+        <button class="btn" type="submit">Já paguei (confirmar)</button>
+        <a class="btn2" href="/meus-pedidos" style="margin-left:8px;">Voltar</a>
+      </form>
+
+      <div class="muted" style="margin-top:12px;">
+        * MVP: este “confirmar” é manual só para teste. Depois a gente integra com gateway/PSP.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function copyPix() {
+    const el = document.getElementById("pixCode");
+    el.select();
+    el.setSelectionRange(0, 999999);
+
+    try {
+      document.execCommand("copy");
+      document.getElementById("copyMsg").innerText = "✅ Copiado!";
+      setTimeout(() => document.getElementById("copyMsg").innerText = "", 2000);
+    } catch (e) {
+      document.getElementById("copyMsg").innerText = "❌ Não foi possível copiar.";
+    }
+  }
+</script>
+{% endblock %}

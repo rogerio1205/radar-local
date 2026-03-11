@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Produtos da Empresa - Vendas1{% endblock %}
+
+{% block content %}
+  <div class="card" style="margin-bottom:20px;">
+    <h1 style="margin-top:0;">Produtos da Empresa</h1>
+    <p class="muted" style="margin-bottom:0;">
+      Gerencie os produtos cadastrados da sua loja.
+    </p>
+  </div>
+
+  <div style="display:grid; grid-template-columns:260px 1fr; gap:20px; align-items:start;">
+
+    <aside class="card">
+      <h3 style="margin-top:0;">Menu da Empresa</h3>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <a class="btn2" href="/empresa/dashboard" style="text-align:center;">Painel</a>
+        <a class="btn2" href="/empresa/produtos" style="text-align:center;">Produtos</a>
+        <a class="btn2" href="/empresa/pedidos" style="text-align:center;">Pedidos</a>
+        <a class="btn2" href="/empresa/clientes" style="text-align:center;">Clientes</a>
+        <a class="btn2" href="/empresa/dados" style="text-align:center;">Dados</a>
+      </div>
+    </aside>
+
+    <section>
+      <div class="card" style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div>
+          <h2 style="margin:0;">{{ empresa.name }}</h2>
+          <p class="muted" style="margin:6px 0 0 0;">Lista de produtos cadastrados</p>
+        </div>
+
+        <div>
+          <a class="btn" href="/empresa/produtos/novo">Novo produto</a>
+        </div>
+      </div>
+
+      <div class="card">
+        {% if produtos and produtos|length > 0 %}
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse;">
+              <thead>
+                <tr>
+                  <th style="text-align:left; padding:12px; border-bottom:1px solid #2a3445;">Foto</th>
+                  <th style="text-align:left; padding:12px; border-bottom:1px solid #2a3445;">Código</th>
+                  <th style="text-align:left; padding:12px; border-bottom:1px solid #2a3445;">Nome</th>
+                  <th style="text-align:left; padding:12px; border-bottom:1px solid #2a3445;">Unidade</th>
+                  <th style="text-align:left; padding:12px; border-bottom:1px solid #2a3445;">Preço</th>
+                  <th style="text-align:left; padding:12px; border-bottom:1px solid #2a3445;">Estoque</th>
+                  <th style="text-align:left; padding:12px; border-bottom:1px solid #2a3445;">Mínimo</th>
+                  <th style="text-align:left; padding:12px; border-bottom:1px solid #2a3445;">Ativo</th>
+                  <th style="text-align:left; padding:12px; border-bottom:1px solid #2a3445;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in produtos %}
+                <tr>
+                  <td style="padding:12px; border-bottom:1px solid #1b2330;">
+                    {% if p.image %}
+                      <img src="/static/uploads/produtos/{{ p.image }}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid #2a3445;">
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td style="padding:12px; border-bottom:1px solid #1b2330;">{{ p.code or "-" }}</td>
+                  <td style="padding:12px; border-bottom:1px solid #1b2330;">{{ p.name }}</td>
+                  <td style="padding:12px; border-bottom:1px solid #1b2330;">{{ p.unit or "-" }}</td>
+                  <td style="padding:12px; border-bottom:1px solid #1b2330;">R$ {{ "%.2f"|format(p.price)|replace(".", ",") }}</td>
+                  <td style="padding:12px; border-bottom:1px solid #1b2330;">{{ p.stock }}</td>
+                  <td style="padding:12px; border-bottom:1px solid #1b2330;">{{ p.min_stock }}</td>
+                  <td style="padding:12px; border-bottom:1px solid #1b2330;">
+                    {% if p.active %}Sim{% else %}Não{% endif %}
+                    {% if p.stock <= p.min_stock %}
+                      <div style="color:#f59e0b; font-size:12px; margin-top:4px;">Estoque baixo</div>
+                    {% endif %}
+                  </td>
+                  <td style="padding:12px; border-bottom:1px solid #1b2330;">
+                    <a class="btn2" href="/empresa/produtos/{{ p.id }}/editar">Editar</a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="muted" style="margin:0;">Nenhum produto cadastrado ainda.</p>
+        {% endif %}
+      </div>
+    </section>
+
+  </div>
+{% endblock %}

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}RADAR LOCAL{% endblock %}</title>
+
+  <style>
+    body{font-family:system-ui;margin:0;background:#0b0d10;color:#e9eef5}
+    a{color:#8ad;text-decoration:none}
+    .wrap{max-width:1180px;margin:0 auto;padding:20px}
+    header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:16px;
+      gap:16px;
+      flex-wrap:wrap;
+      padding-bottom:14px;
+      border-bottom:1px solid #1b2330;
+    }
+    .brand{
+      font-size:20px;
+      font-weight:800;
+      color:#ffffff;
+      letter-spacing:.6px;
+    }
+    nav{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .card{background:#11151b;border:1px solid #1b2330;border-radius:12px;padding:16px}
+    .btn{display:inline-block;background:#2d6cdf;color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer}
+    .btn2{display:inline-block;background:transparent;color:#e9eef5;border:1px solid #2a3445;border-radius:10px;padding:10px 14px;cursor:pointer}
+    .error{border-left:6px solid #ef4444; padding:10px 12px; background:#fff; color:#111; border-radius:10px; margin:10px 0}
+    .ok{border-left:6px solid #22c55e; padding:10px 12px; background:#fff; color:#111; border-radius:10px; margin:10px 0}
+    .muted{opacity:.8}
+    input,select,textarea{background:#0b0d10;color:#e9eef5}
+    .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid #2a3445}
+    .badge-blue{border-color:#2d6cdf;color:#cfe0ff}
+    .badge-green{border-color:#22c55e;color:#c9f7d7}
+    .badge-red{border-color:#ef4444;color:#ffd1d1}
+    .badge-yellow{border-color:#f59e0b;color:#ffe6b6}
+    .hello{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border:1px solid #1b2330;
+      border-radius:10px;
+      background:#11151b;
+    }
+
+    @media (max-width: 780px){
+      header{
+        align-items:flex-start;
+      }
+      nav{
+        width:100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">RADAR LOCAL</div>
+
+      <nav>
+        {% if current_user %}
+          <a class="btn2" href="/mapa">Início</a>
+          <a class="btn2" href="/cart">Carrinho</a>
+          <a class="btn2" href="/meus-pedidos">Meus pedidos</a>
+          <a class="btn2" href="/empresa/cadastrar">Cadastrar minha empresa</a>
+
+          {% if can("admin.dashboard.view") %}
+            <a class="btn2" href="/admin">Administração</a>
+          {% else %}
+            <a class="btn2" href="/login?next=/admin">Administração</a>
+          {% endif %}
+
+          <span class="hello">Olá, <strong>{{ current_user.name }}</strong></span>
+
+          <form method="post" action="/logout" style="display:inline; margin:0;">
+            <button class="btn2" type="submit">Sair</button>
+          </form>
+        {% else %}
+          <a class="btn" href="/login">Entrar</a>
+          <a class="btn2" href="/register">Criar conta</a>
+          <a class="btn2" href="/empresa/cadastrar">Cadastrar minha empresa</a>
+          <a class="btn2" href="/login?next=/admin">Administração</a>
+        {% endif %}
+      </nav>
+    </header>
+
+    {% if flashes %}
+      {% for f in flashes %}
+        <div class="{{ f.category }}">
+          <strong>{{ f.category|upper }}:</strong> {{ f.message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

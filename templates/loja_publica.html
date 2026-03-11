@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}{{ empresa.name }} - Loja{% endblock %}
+
+{% block content %}
+  {% set endereco_nav = (empresa.address or '') ~ ', ' ~ (empresa.neighborhood or '') ~ ', ' ~ (empresa.city or '') ~ ', ' ~ (empresa.state or '') ~ ', ' ~ (empresa.country or '') %}
+
+  <div class="card" style="margin-bottom:20px;">
+    <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+      {% if empresa.logo %}
+        <img
+          src="/static/uploads/logos/{{ empresa.logo }}"
+          style="width:100px; height:100px; object-fit:contain; border-radius:14px; background:#fff; padding:6px; border:1px solid #2a3445;"
+        >
+      {% endif %}
+
+      <div>
+        <h1 style="margin:0;">{{ empresa.name }}</h1>
+
+        <p class="muted" style="margin:10px 0 0 0;">
+          {{ empresa.description or "Loja cadastrada no Vendas1." }}
+        </p>
+      </div>
+    </div>
+
+    {% if empresa.specialties %}
+      <p class="muted" style="margin-bottom:10px;">
+        <strong>Especialidades:</strong> {{ empresa.specialties }}
+      </p>
+    {% endif %}
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+      {% if empresa.city %}
+        <span class="badge badge-blue">
+          {{ empresa.city }}{% if empresa.state %} - {{ empresa.state }}{% endif %}
+        </span>
+      {% endif %}
+
+      {% if empresa.phone %}
+        <span class="badge badge-green">Telefone: {{ empresa.phone }}</span>
+      {% endif %}
+
+      {% if empresa.whatsapp %}
+        <span class="badge badge-green">WhatsApp: {{ empresa.whatsapp }}</span>
+      {% endif %}
+
+      {% if empresa.instagram %}
+        <span class="badge badge-yellow">Instagram: {{ empresa.instagram }}</span>
+      {% endif %}
+    </div>
+
+    {% if not user_logged %}
+      <div class="card" style="margin-bottom:14px;">
+        <h3 style="margin-top:0;">Gostou desta loja?</h3>
+        <p class="muted" style="margin-bottom:14px; line-height:1.6;">
+          Você pode visualizar os produtos, mas para comprar, acessar rotas e continuar a experiência completa é necessário entrar na sua conta.
+        </p>
+        <a class="btn" href="/login?next=/loja/{{ empresa.id }}">Entrar para continuar</a>
+        <a class="btn2" href="/register" style="margin-left:8px;">Ainda não tenho cadastro</a>
+      </div>
+    {% endif %}
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a class="btn2" href="/cart">Ver carrinho</a>
+
+      {% if user_logged %}
+        {% if empresa.latitude and empresa.longitude %}
+          <a
+            class="btn2"
+            href="https://www.google.com/maps/search/?api=1&query={{ empresa.latitude }},{{ empresa.longitude }}"
+            target="_blank"
+          >
+            Google Maps
+          </a>
+
+          <a
+            class="btn2"
+            href="https://waze.com/ul?ll={{ empresa.latitude }},{{ empresa.longitude }}&navigate=yes"
+            target="_blank"
+          >
+            Waze
+          </a>
+        {% else %}
+          {% if empresa.address or empresa.city or empresa.state %}
+            <a
+              class="btn2"
+              href="https://www.google.com/maps/search/?api=1&query={{ endereco_nav | urlencode }}"
+              target="_blank"
+            >
+              Google Maps
+            </a>
+
+            <a
+              class="btn2"
+              href="https://waze.com/ul?q={{ endereco_nav | urlencode }}&navigate=yes"
+              target="_blank"
+            >
+              Waze
+            </a>
+          {% endif %}
+        {% endif %}
+
+        {% if empresa.map_link %}
+          <a class="btn2" href="{{ empresa.map_link }}" target="_blank">Abrir mapa</a>
+        {% endif %}
+      {% else %}
+        <a class="btn2" href="/login?next=/loja/{{ empresa.id }}">Entrar para usar rotas</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+      <div>
+        <h2 style="margin:0;">Produtos da loja</h2>
+        <p class="muted" style="margin:6px 0 0 0;">Escolha os produtos e adicione ao carrinho.</p>
+      </div>
+
+      <div>
+        <a class="btn2" href="/cart">Ver carrinho</a>
+      </div>
+    </div>
+
+    {% if produtos and produtos|length > 0 %}
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+        {% for p in produtos %}
+          <div class="card">
+            {% if p.image %}
+              <img
+                src="/static/uploads/produtos/{{ p.image }}"
+                style="width:100%; height:190px; object-fit:cover; border-radius:10px; margin-bottom:12px;"
+              >
+            {% endif %}
+
+            <h3 style="margin-top:0; margin-bottom:8px;">{{ p.name }}</h3>
+
+            {% if p.description %}
+              <p class="muted" style="margin:0 0 8px 0;">
+                {{ p.description }}
+              </p>
+            {% endif %}
+
+            <p class="muted" style="margin:0 0 8px 0;">
+              Categoria: {{ p.category or "-" }}
+            </p>
+
+            <p class="muted" style="margin:0 0 8px 0;">
+              Referência: {{ p.weight or "-" }}
+            </p>
+
+            <p style="font-size:22px; font-weight:700; margin:0 0 8px 0;">
+              R$ {{ "%.2f"|format(p.price)|replace(".", ",") }}{% if p.unit %} / {{ p.unit }}{% endif %}
+            </p>
+
+            <p class="muted" style="margin:0 0 14px 0;">
+              Estoque: {{ p.stock }}
+            </p>
+
+            {% if user_logged %}
+              <form method="post" action="/loja/{{ empresa.id }}/cart/add" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <input type="hidden" name="product_id" value="{{ p.id }}">
+
+                <input
+                  type="number"
+                  name="qty"
+                  min="1"
+                  value="1"
+                  style="width:90px; padding:10px; border-radius:10px; border:1px solid #2a3445;"
+                >
+
+                <button class="btn" type="submit">Adicionar</button>
+              </form>
+            {% else %}
+              <a class="btn" href="/login?next=/loja/{{ empresa.id }}">Entrar para comprar</a>
+              <a class="btn2" href="/register" style="margin-left:8px;">Não tenho cadastro</a>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted" style="margin-bottom:0;">Esta loja ainda não possui produtos ativos.</p>
+    {% endif %}
+  </div>
+{% endblock %}
