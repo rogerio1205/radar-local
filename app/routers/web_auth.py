@@ -18,22 +18,32 @@ def tpl(request: Request, name: str, context: dict | None = None, status_code: i
 
 
 def is_user_admin(user: User) -> bool:
-
     is_admin = False
 
+    # Compatibilidade com versões antigas
     if hasattr(user, "is_admin"):
-        is_admin = bool(user.is_admin)
+        is_admin = bool(getattr(user, "is_admin", False))
 
     if not is_admin and hasattr(user, "role"):
-        is_admin = user.role == "admin"
+        is_admin = getattr(user, "role", None) == "admin"
 
+    # Verifica relacionamento RBAC user.roles -> UserRole -> Role
+    if not is_admin and hasattr(user, "roles") and user.roles:
+        for user_role in user.roles:
+            role_obj = getattr(user_role, "role", None)
+            role_name = getattr(role_obj, "name", None)
+
+            if role_name == "admin":
+                is_admin = True
+                break
+
+    # Fallback por email definido em variável de ambiente
     if not is_admin:
         admins = os.getenv("ADMIN_EMAILS", "")
 
         if admins:
-            allowed = [e.strip().lower() for e in admins.split(",")]
-
-            email = getattr(user, "email", "").lower()
+            allowed = [e.strip().lower() for e in admins.split(",") if e.strip()]
+            email = getattr(user, "email", "").strip().lower()
 
             if email in allowed:
                 is_admin = True
@@ -54,11 +64,9 @@ def login(
     password: str = Form(...),
     next_url: str = Form("/"),
 ):
-
     db: Session = SessionLocal()
 
     try:
-
         email = (email or "").strip().lower()
 
         user = db.query(User).filter(User.email == email).first()
@@ -77,11 +85,9 @@ def login(
 
         flash(request, "Bem-vindo! Login realizado com sucesso.", "ok")
 
-        # 🔵 ADMIN VAI DIRETO PARA O DASHBOARD ADMIN
         if is_user_admin(user):
             return RedirectResponse("/admin", status_code=303)
 
-        # usuário normal segue fluxo normal
         if not next_url.startswith("/"):
             next_url = "/"
 
@@ -93,11 +99,8 @@ def login(
 
 @router.post("/logout")
 def logout(request: Request):
-
     request.session.clear()
-
     flash(request, "Você saiu da sua conta.", "ok")
-
     return RedirectResponse("/login", status_code=303)
 
 
@@ -114,15 +117,12 @@ def register(
     region: str = Form(...),
     password: str = Form(...),
 ):
-
     db: Session = SessionLocal()
 
     try:
-
         ensure_rbac_seed(db)
 
         email = (email or "").strip().lower()
-
         hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
         new_user = User(
@@ -139,16 +139,17 @@ def register(
         ensure_first_user_is_admin(db, new_user.id)
 
         flash(request, "Conta criada! Faça login.", "ok")
-
         return RedirectResponse("/login", status_code=303)
 
     except IntegrityError:
-
         db.rollback()
-
         flash(request, "Esse email já está cadastrado.", "error")
-
         return tpl(request, "register.html", status_code=400)
+
+    except Exception as e:
+        db.rollback()
+        flash(request, f"Erro interno ao cadastrar: {str(e)}", "error")
+        return tpl(request, "register.html", status_code=500)
 
     finally:
         db.close()
