@@ -7,6 +7,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 # DB / Models
 from app.db.session import Base, engine
+from app.db.migrations import run_migrations
 import app.models
 
 from app.core.flash import pop_flashes
@@ -32,6 +33,7 @@ from app.routers.company_data import router as company_data_router
 from app.routers.company_clients import router as company_clients_router
 from app.routers.company_orders import router as company_orders_router
 from app.routers.company_import import router as company_import_router
+from app.routers.company_claim import router as company_claim_router
 
 # Admin
 from app.routers.admin import router as admin_router
@@ -39,19 +41,9 @@ from app.routers.admin import router as admin_router
 # Pagamentos
 from app.routers.payment import router as payment_router
 
-
-# ==========================================
-# APP
-# ==========================================
-
 app = FastAPI(title=os.getenv("APP_NAME", "RADAR LOCAL"))
 
-# STATIC
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# ==========================================
-# DB INIT
-# ==========================================
 
 AUTO_CREATE_DB = os.getenv("AUTO_CREATE_DB", "1") == "1"
 
@@ -60,11 +52,8 @@ AUTO_CREATE_DB = os.getenv("AUTO_CREATE_DB", "1") == "1"
 def on_startup():
     if AUTO_CREATE_DB:
         Base.metadata.create_all(bind=engine)
+    run_migrations()
 
-
-# ==========================================
-# MIDDLEWARE
-# ==========================================
 
 app.add_middleware(
     SessionMiddleware,
@@ -78,10 +67,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ==========================================
-# TEMPLATES
-# ==========================================
 
 templates = Jinja2Templates(directory="templates")
 
@@ -107,23 +92,16 @@ def tpl(request: Request, name: str, context: dict | None = None, status_code: i
 
 app.state.tpl = tpl
 
-# ==========================================
-# ROUTERS
-# ==========================================
-
-# WEB
 app.include_router(web_auth_router)
 app.include_router(web_store_router)
 app.include_router(store_public_router)
 app.include_router(stores_list_router)
 app.include_router(map_view_router)
 
-# API
 app.include_router(api_users_router)
 app.include_router(api_products_router)
 app.include_router(api_orders_router)
 
-# EMPRESA
 app.include_router(company_register_router)
 app.include_router(company_panel_router)
 app.include_router(company_products_router)
@@ -131,16 +109,11 @@ app.include_router(company_data_router)
 app.include_router(company_clients_router)
 app.include_router(company_orders_router)
 app.include_router(company_import_router)
+app.include_router(company_claim_router)
 
-# ADMIN
 app.include_router(admin_router)
 
-# PAGAMENTOS
 app.include_router(payment_router)
-
-# ==========================================
-# HEALTH CHECK
-# ==========================================
 
 
 @app.get("/health")

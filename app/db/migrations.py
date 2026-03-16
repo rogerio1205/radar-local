@@ -1,65 +1,69 @@
-from sqlalchemy import text
+from sqlalchemy import inspect, text
+
 from app.db.session import engine
 
 
-def _has_column(conn, table: str, column: str) -> bool:
-    rows = conn.execute(text(f"PRAGMA table_info({table})")).fetchall()
-    cols = {r[1] for r in rows}  # r[1] = column name
-    return column in cols
+def _table_exists(inspector, table_name: str) -> bool:
+    return table_name in inspector.get_table_names()
+
+
+def _has_column(inspector, table_name: str, column_name: str) -> bool:
+    try:
+        cols = inspector.get_columns(table_name)
+    except Exception:
+        return False
+
+    names = {c.get("name") for c in cols}
+    return column_name in names
 
 
 def run_migrations() -> None:
     """
-    Migração leve para SQLite (idempotente).
-    - cria companies
-    - cria company_users
-    - adiciona company_id em products (se não existir)
+    Migração leve e idempotente para SQLite/PostgreSQL.
+    - garante company_users
+    - garante products.company_id
     """
     with engine.begin() as conn:
-        # companies
-        conn.execute(
-            text(
-                """
-                CREATE TABLE IF NOT EXISTS companies (
-                    id INTEGER PRIMARY KEY,
-                    name VARCHAR NOT NULL,
-                    legal_name VARCHAR NULL,
-                    cnpj VARCHAR NULL,
-                    email VARCHAR NOT NULL,
-                    phone VARCHAR NULL,
-                    address VARCHAR NULL,
-                    website VARCHAR NULL,
-                    instagram VARCHAR NULL,
-                    description VARCHAR NULL,
-                    status VARCHAR NOT NULL DEFAULT 'pending',
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-                """
-            )
-        )
+        inspector = inspect(conn)
+        dialect = conn.dialect.name
 
-        # company_users (preparado para multi-usuário por empresa)
-        conn.execute(
-            text(
-                """
-                CREATE TABLE IF NOT EXISTS company_users (
-                    id INTEGER PRIMARY KEY,
-                    company_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    role VARCHAR NOT NULL DEFAULT 'owner',
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(company_id, user_id),
-                    FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+        if not _table_exists(inspector, "company_users"):
+            if dialect == "sqlite":
+                conn.execute(
+                    text(
+                        """
+                        CREATE TABLE company_users (
+                            id INTEGER PRIMARY KEY,
+                            company_id INTEGER NOT NULL,
+                            user_id INTEGER NOT NULL,
+                            role VARCHAR(50) NOT NULL DEFAULT 'owner',
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            UNIQUE(company_id, user_id),
+                            FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+                            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+                        )
+                        """
+                    )
                 )
-                """
-            )
-        )
+            else:
+                conn.execute(
+                    text(
+                        """
+                        CREATE TABLE company_users (
+                            id SERIAL PRIMARY KEY,
+                            company_id INTEGER NOT NULL,
+                            user_id INTEGER NOT NULL,
+                            role VARCHAR(50) NOT NULL DEFAULT 'owner',
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            CONSTRAINT uq_company_users_company_user UNIQUE (company_id, user_id),
+                            CONSTRAINT fk_company_users_company FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+                            CONSTRAINT fk_company_users_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                        )
+                        """
+                    )
+                )
 
-        # products.company_id
-        # (só adiciona se não existir)
-        try:
-            if not _has_column(conn, "products", "company_id"):
-                conn.execute(text("ALTER TABLE products ADD COLUMN company_id INTEGER NULL"))
-        except Exception:
-            # Se products não existir ainda, não faz nada
-            pass
+        inspector = inspect(conn)
+
+        if _table_exists(inspector, "products") and not _has_column(inspector, "products", "company_id"):
+            conn.execute(text("ALTER TABLE products ADD COLUMN company_id INTEGER NULL"))
