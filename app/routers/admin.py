@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Request, Form, Query
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
-from app.core.tpl import templates
 from app.core.guards import require_admin
 from app.core.flash import flash
 from app.db.session import SessionLocal
 from app.models.product import Product
+from app.models.company import Company
 
 from app.services.admin_service import (
     get_admin_dashboard_metrics,
@@ -19,16 +20,29 @@ from app.services.admin_service import (
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
+def tpl(request: Request, name: str, context: dict | None = None, status_code: int = 200):
+    return request.app.state.tpl(request, name, context, status_code)
+
+
 # ---------------------------
 # DASHBOARD
 # ---------------------------
 
 @router.get("", response_class=HTMLResponse)
 @router.get("/", response_class=HTMLResponse)
-def admin_home(request: Request):
+def admin_home(
+    request: Request,
+    q: str | None = Query(default=None),
+    city: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+):
     guard = require_admin(request, next_url="/admin")
     if guard:
         return guard
+
+    q = (q or "").strip()
+    city = (city or "").strip()
+    status = (status or "").strip()
 
     db: Session = SessionLocal()
     try:
@@ -36,13 +50,39 @@ def admin_home(request: Request):
         series_7 = get_dashboard_daily_series(db, days=7)
         series_30 = get_dashboard_daily_series(db, days=30)
 
-        return templates.TemplateResponse(
+        companies_query = db.query(Company)
+
+        if q:
+            companies_query = companies_query.filter(
+                or_(
+                    Company.name.ilike(f"%{q}%"),
+                    Company.description.ilike(f"%{q}%"),
+                    Company.specialties.ilike(f"%{q}%"),
+                    Company.email.ilike(f"%{q}%"),
+                )
+            )
+
+        if city:
+            companies_query = companies_query.filter(Company.city.ilike(f"%{city}%"))
+
+        if status:
+            companies_query = companies_query.filter(Company.status == status)
+
+        companies = companies_query.order_by(Company.id.desc()).limit(20).all()
+
+        return tpl(
+            request,
             "admin_dashboard.html",
             {
-                "request": request,
                 "metrics": metrics,
                 "series_7": series_7,
                 "series_30": series_30,
+                "companies": companies,
+                "filters": {
+                    "q": q,
+                    "city": city,
+                    "status": status,
+                },
             },
         )
     finally:
@@ -62,9 +102,13 @@ def admin_orders(request: Request, status: str | None = Query(default=None)):
     db: Session = SessionLocal()
     try:
         orders = list_orders_admin(db, status=status)
-        return templates.TemplateResponse(
+        return tpl(
+            request,
             "admin_orders.html",
-            {"request": request, "orders": orders, "status": status},
+            {
+                "orders": orders,
+                "status": status,
+            },
         )
     finally:
         db.close()
@@ -83,9 +127,12 @@ def admin_order_detail(request: Request, order_id: int):
             flash(request, "Pedido não encontrado.", "error")
             return RedirectResponse("/admin/orders", status_code=303)
 
-        return templates.TemplateResponse(
+        return tpl(
+            request,
             "admin_order_detail.html",
-            {"request": request, "order": order},
+            {
+                "order": order,
+            },
         )
     finally:
         db.close()
@@ -128,9 +175,12 @@ def admin_products(request: Request):
     db: Session = SessionLocal()
     try:
         products = db.query(Product).order_by(Product.id.desc()).all()
-        return templates.TemplateResponse(
+        return tpl(
+            request,
             "admin_products.html",
-            {"request": request, "products": products},
+            {
+                "products": products,
+            },
         )
     finally:
         db.close()
@@ -149,7 +199,11 @@ def admin_products_create(
 
     db: Session = SessionLocal()
     try:
-        p = Product(name=name, price=price, stock=stock)
+        p = Product(
+            name=name,
+            price=price,
+            stock=stock,
+        )
         db.add(p)
         db.commit()
         flash(request, "Produto criado.", "ok")

@@ -20,14 +20,12 @@ def tpl(request: Request, name: str, context: dict | None = None, status_code: i
 def is_user_admin(user: User) -> bool:
     is_admin = False
 
-    # Compatibilidade com versões antigas
     if hasattr(user, "is_admin"):
         is_admin = bool(getattr(user, "is_admin", False))
 
     if not is_admin and hasattr(user, "role"):
         is_admin = getattr(user, "role", None) == "admin"
 
-    # Verifica relacionamento RBAC user.roles -> UserRole -> Role
     if not is_admin and hasattr(user, "roles") and user.roles:
         for user_role in user.roles:
             role_obj = getattr(user_role, "role", None)
@@ -37,7 +35,6 @@ def is_user_admin(user: User) -> bool:
                 is_admin = True
                 break
 
-    # Fallback por email definido em variável de ambiente
     if not is_admin:
         admins = os.getenv("ADMIN_EMAILS", "")
 
@@ -57,6 +54,17 @@ def login_page(request: Request):
     return tpl(request, "login.html", {"next_url": next_url})
 
 
+@router.get("/admin-login", response_class=HTMLResponse)
+def admin_login_page(request: Request):
+    return tpl(
+        request,
+        "admin_login.html",
+        {
+            "next_url": "/admin",
+        },
+    )
+
+
 @router.post("/login")
 def login(
     request: Request,
@@ -73,15 +81,32 @@ def login(
 
         if not user:
             flash(request, "Email ou senha inválidos.", "error")
+
+            if next_url == "/admin":
+                return tpl(request, "admin_login.html", {"next_url": next_url}, status_code=400)
+
             return tpl(request, "login.html", {"next_url": next_url}, status_code=400)
 
         ok = bcrypt.checkpw(password.encode("utf-8"), user.password_hash.encode("utf-8"))
 
         if not ok:
             flash(request, "Senha incorreta.", "error")
+
+            if next_url == "/admin":
+                return tpl(request, "admin_login.html", {"next_url": next_url}, status_code=400)
+
             return tpl(request, "login.html", {"next_url": next_url}, status_code=400)
 
         request.session["user_id"] = user.id
+
+        if next_url == "/admin":
+            if not is_user_admin(user):
+                request.session.clear()
+                flash(request, "Acesso restrito ao administrador.", "error")
+                return tpl(request, "admin_login.html", {"next_url": next_url}, status_code=403)
+
+            flash(request, "Bem-vindo ao painel administrador.", "ok")
+            return RedirectResponse("/admin", status_code=303)
 
         flash(request, "Bem-vindo! Login realizado com sucesso.", "ok")
 

@@ -7,8 +7,7 @@
     <h1 style="margin-top:0;">Encontre fornecedores perto de você</h1>
 
     <p class="muted" style="margin-bottom:0;">
-      O RADAR LOCAL conecta você a empresas, produtos e serviços da sua região.
-      Você pode visualizar as lojas livremente. Para comprar ou navegar até uma loja é necessário entrar na sua conta.
+      Primeiro escolha a região no mapa. Depois informe o que você procura para encontrar empresas no RADAR LOCAL e também empresas externas disponíveis para futura importação.
     </p>
   </div>
 
@@ -81,7 +80,19 @@
   </div>
 
   <div class="card" style="margin-bottom:20px;">
-    <h2 style="margin-top:0;">Mapa das lojas</h2>
+    <h2 style="margin-top:0;">Mapa da região</h2>
+
+    {% if mapa_error %}
+      <div class="error">
+        <strong>ERRO:</strong> {{ mapa_error }}
+      </div>
+    {% endif %}
+
+    {% if not current_user %}
+      <div class="error">
+        <strong>ATENÇÃO:</strong> Você pode visualizar o mapa e as empresas livremente, mas para ver o painel da loja ou traçar rota até a empresa é necessário entrar na sua conta.
+      </div>
+    {% endif %}
 
     <link
       rel="stylesheet"
@@ -91,19 +102,24 @@
     <div id="mapa-lojas" style="height:420px; border-radius:12px; overflow:hidden; border:1px solid #2a3445;"></div>
 
     <p class="muted" style="margin-top:12px; margin-bottom:0;">
-      Explore o mapa, encontre fornecedores e acesse a loja para ver os produtos disponíveis.
+      Região atual do mapa:
+      <strong>{{ map_center.label if map_center else "Brasil" }}</strong>
     </p>
   </div>
 
-  <div class="card">
+  <div class="card" style="margin-bottom:20px;">
     <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
       <div>
-        <h2 style="margin:0;">Lojas encontradas</h2>
-        <p class="muted" style="margin:6px 0 0 0;">Clique em uma loja para ver os produtos.</p>
+        <h2 style="margin:0;">Empresas do RADAR LOCAL</h2>
+        <p class="muted" style="margin:6px 0 0 0;">Empresas já cadastradas no portal.</p>
       </div>
     </div>
 
-    {% if lojas and lojas|length > 0 %}
+    {% if not search_ready %}
+      <p class="muted" style="margin-bottom:0;">
+        Defina sua região e preencha o campo <strong>“O que você procura?”</strong> para listar empresas.
+      </p>
+    {% elif lojas and lojas|length > 0 %}
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
         {% for loja in lojas %}
           <div class="card">
@@ -111,6 +127,7 @@
               <div style="margin-bottom:12px;">
                 <img
                   src="/static/uploads/logos/{{ loja.logo }}"
+                  alt="Logo de {{ loja.name }}"
                   style="width:80px; height:80px; object-fit:contain; border-radius:12px; background:#fff; padding:6px; border:1px solid #2a3445;"
                 >
               </div>
@@ -137,49 +154,147 @@
             </div>
 
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <a class="btn" href="/loja/{{ loja.id }}">Ver loja</a>
+              {% if current_user %}
+                <a class="btn" href="/loja/{{ loja.id }}">Ver painel da loja</a>
+                <a class="btn2" href="/rota-loja/{{ loja.id }}">Ir até a loja</a>
+              {% else %}
+                <a class="btn" href="/login?next=/loja/{{ loja.id }}">Ver painel da loja</a>
+                <a class="btn2" href="/login?next=/loja/{{ loja.id }}">Ir até a loja</a>
+              {% endif %}
             </div>
           </div>
         {% endfor %}
       </div>
     {% else %}
-      <p class="muted" style="margin-bottom:0;">Nenhuma loja encontrada com esse filtro.</p>
+      <p class="muted" style="margin-bottom:0;">Nenhuma empresa interna encontrada com esse filtro.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+      <div>
+        <h2 style="margin:0;">Empresas externas encontradas</h2>
+        <p class="muted" style="margin:6px 0 0 0;">Resultados externos prontos para futura importação ao RADAR LOCAL.</p>
+      </div>
+    </div>
+
+    {% if not search_ready %}
+      <p class="muted" style="margin-bottom:0;">
+        Ao pesquisar uma categoria, produto ou serviço, o sistema também buscará empresas externas na região selecionada.
+      </p>
+    {% elif empresas_externas and empresas_externas|length > 0 %}
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+        {% for empresa in empresas_externas %}
+          <div class="card">
+            <h3 style="margin-top:0; margin-bottom:8px;">{{ empresa.name }}</h3>
+
+            <p class="muted" style="margin:0 0 10px 0;">
+              {{ empresa.description or "Empresa encontrada externamente e pronta para ser trazida ao RADAR LOCAL." }}
+            </p>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+              {% if empresa.category %}
+                <span class="badge badge-yellow">
+                  {{ empresa.category }}
+                </span>
+              {% endif %}
+
+              {% if empresa.city %}
+                <span class="badge badge-blue">
+                  {{ empresa.city }}{% if empresa.state %} - {{ empresa.state }}{% endif %}
+                </span>
+              {% endif %}
+
+              {% if empresa.phone %}
+                <span class="badge badge-green">
+                  {{ empresa.phone }}
+                </span>
+              {% endif %}
+            </div>
+
+            {% if empresa.address %}
+              <p class="muted" style="margin:0 0 12px 0;">
+                {{ empresa.address }}
+                {% if empresa.neighborhood %} - {{ empresa.neighborhood }}{% endif %}
+              </p>
+            {% endif %}
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              {% if current_user %}
+                <a class="btn" href="{{ empresa.import_url }}">Ver painel da loja</a>
+                <a class="btn2" href="{{ empresa.import_url }}">Ir até a loja</a>
+              {% else %}
+                <a class="btn" href="{{ empresa.import_url }}">Ver painel da loja</a>
+                <a class="btn2" href="{{ empresa.import_url }}">Ir até a loja</a>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted" style="margin-bottom:0;">Nenhuma empresa externa encontrada com esse filtro.</p>
     {% endif %}
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
+    const userLogged = {{ (current_user is not none)|tojson }};
+
     const pontos = [
       {% for p in pontos %}
       {
-        id: {{ p.id }},
-        name: "{{ p.name|replace('"', '\\"') }}",
-        city: "{{ p.city|replace('"', '\\"') }}",
-        state: "{{ p.state|replace('"', '\\"') }}",
-        lat: parseFloat("{{ p.latitude }}"),
-        lng: parseFloat("{{ p.longitude }}")
+        id: {{ (p.id or "")|tojson }},
+        source: {{ (p.source or "")|tojson }},
+        name: {{ (p.name or "")|tojson }},
+        city: {{ (p.city or "")|tojson }},
+        state: {{ (p.state or "")|tojson }},
+        lat: parseFloat({{ (p.latitude or "")|tojson }}),
+        lng: parseFloat({{ (p.longitude or "")|tojson }}),
+        url: {{ (p.url or "#")|tojson }},
+        map_link: {{ (p.map_link or "#")|tojson }},
+        import_url: {{ (p.import_url or "#")|tojson }}
       }{% if not loop.last %},{% endif %}
       {% endfor %}
     ];
 
-    const mapa = L.map('mapa-lojas').setView([-14.2350, -51.9253], 4);
+    const defaultLat = {{ (map_center.lat if map_center else -14.2350)|tojson }};
+    const defaultLng = {{ (map_center.lng if map_center else -51.9253)|tojson }};
+    const defaultZoom = {{ (map_center.zoom if map_center else 4)|tojson }};
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const mapa = L.map("mapa-lojas").setView([defaultLat, defaultLng], defaultZoom);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
+      attribution: "&copy; OpenStreetMap"
     }).addTo(mapa);
 
-    if (pontos.length > 0) {
+    const pontosValidos = pontos.filter(p => !Number.isNaN(p.lat) && !Number.isNaN(p.lng));
+
+    if (pontosValidos.length > 0) {
       const bounds = [];
 
-      pontos.forEach(p => {
+      pontosValidos.forEach(p => {
         const marker = L.marker([p.lat, p.lng]).addTo(mapa);
+
+        let painelBtn = "";
+        let rotaBtn = "";
+
+        if (p.source === "portal") {
+          painelBtn = `<a href="${p.url}">Ver painel da loja</a>`;
+          rotaBtn = `<a href="/rota-loja/${p.id}">Ir até a loja</a>`;
+        } else {
+          painelBtn = `<a href="${p.import_url}">Ver painel da loja</a>`;
+          rotaBtn = `<a href="${p.import_url}">Ir até a loja</a>`;
+        }
 
         marker.bindPopup(`
           <strong>${p.name}</strong><br>
           ${p.city}${p.state ? " - " + p.state : ""}<br><br>
-          <a href="/loja/${p.id}">Ver loja</a>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            ${painelBtn}
+            ${rotaBtn}
+          </div>
         `);
 
         bounds.push([p.lat, p.lng]);

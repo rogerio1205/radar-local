@@ -1,34 +1,115 @@
 {% extends "base.html" %}
-{% block title %}Cadastrar Empresa - Vendas1{% endblock %}
+{% block title %}Cadastrar Empresa - RADAR LOCAL{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width:720px;">
-  <h2 style="margin-top:0;">Cadastrar minha empresa</h2>
-  <div class="muted">Após cadastrar, o admin aprova para sua empresa aparecer no portal.</div>
+<div class="card" style="max-width:760px;">
+  <h2 style="margin-top:0;">
+    {% if company %}
+      Assumir empresa no RADAR LOCAL
+    {% else %}
+      Cadastrar minha empresa
+    {% endif %}
+  </h2>
+
+  <div class="muted">
+    {% if company %}
+      Os dados já encontrados para esta empresa foram preenchidos abaixo. Revise, complete o que faltar e crie seu acesso.
+    {% else %}
+      Primeiro acesso da empresa: preencha só o essencial para entrar no painel. Depois você completa o restante.
+    {% endif %}
+  </div>
 
   <form method="post" action="/empresa/cadastrar" style="margin-top:14px;">
-    <label>Nome fantasia*</label><br>
-    <input name="name" required style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"><br><br>
 
-    <label>Email de contato*</label><br>
-    <input name="email" type="email" required style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"><br><br>
+    {% if company %}
+      <input type="hidden" name="company_id" value="{{ company.id }}">
+    {% endif %}
+
+    {% if not current_user %}
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px; margin-bottom:14px;">
+        <div>
+          <label>Seu nome*</label><br>
+          <input
+            name="owner_name"
+            required
+            style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+          >
+        </div>
+
+        <div>
+          <label>Criar senha*</label><br>
+          <input
+            name="password"
+            type="password"
+            required
+            style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+          >
+        </div>
+      </div>
+    {% endif %}
+
+    <label>Nome da empresa*</label><br>
+    <input
+      name="name"
+      required
+      value="{{ company.name if company else '' }}"
+      style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+    ><br><br>
+
+    <label>Email da empresa ou responsável*</label><br>
+    <input
+      name="email"
+      type="email"
+      required
+      value="{{ company.email if company and company.email and company.email != 'importado@radarlocal.local' else '' }}"
+      style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+    ><br><br>
 
     <label>Telefone</label><br>
-    <input name="phone" style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"><br><br>
+    <input
+      name="phone"
+      value="{{ company.phone if company else '' }}"
+      style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+    ><br><br>
 
     <label>Endereço</label><br>
-    <input name="address" style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"><br><br>
+    <input
+      name="address"
+      value="{{ company.address if company else '' }}"
+      style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+    ><br><br>
 
     <label>Website</label><br>
-    <input name="website" style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"><br><br>
+    <input
+      name="website"
+      value="{{ company.website if company else '' }}"
+      style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+    ><br><br>
 
     <label>Instagram</label><br>
-    <input name="instagram" style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"><br><br>
+    <input
+      name="instagram"
+      value="{{ company.instagram if company else '' }}"
+      style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+    ><br><br>
 
     <label>Descrição</label><br>
-    <textarea name="description" style="width:100%;min-height:90px;padding:10px;border-radius:10px;border:1px solid #2a3445;"></textarea><br><br>
+    <textarea
+      name="description"
+      style="width:100%;min-height:90px;padding:10px;border-radius:10px;border:1px solid #2a3445;"
+    >{{ company.description if company else '' }}</textarea><br><br>
 
-    <button class="btn" type="submit">Cadastrar empresa</button>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn" type="submit">
+        {% if company %}
+          Criar acesso e assumir empresa
+        {% else %}
+          Entrar no painel da empresa
+        {% endif %}
+      </button>
+
+      <a class="btn2" href="/">Voltar</a>
+    </div>
   </form>
 </div>
 {% endblock %}

@@ -70,18 +70,7 @@
 
       <nav>
         {% if current_user %}
-          <a class="btn2" href="/mapa">Início</a>
-          <a class="btn2" href="/cart">Carrinho</a>
-          <a class="btn2" href="/meus-pedidos">Meus pedidos</a>
-          <a class="btn2" href="/empresa/cadastrar">Cadastrar minha empresa</a>
-
-          {% if can("admin.dashboard.view") %}
-            <a class="btn2" href="/admin">Administração</a>
-          {% else %}
-            <a class="btn2" href="/login?next=/admin">Administração</a>
-          {% endif %}
-
-          <span class="hello">Olá, <strong>{{ current_user.name }}</strong></span>
+          <span class="hello">Bem-vindo ao RADAR, <strong>{{ current_user.name }}</strong></span>
 
           <form method="post" action="/logout" style="display:inline; margin:0;">
             <button class="btn2" type="submit">Sair</button>
@@ -89,8 +78,8 @@
         {% else %}
           <a class="btn" href="/login">Entrar</a>
           <a class="btn2" href="/register">Criar conta</a>
-          <a class="btn2" href="/empresa/cadastrar">Cadastrar minha empresa</a>
-          <a class="btn2" href="/login?next=/admin">Administração</a>
+          <a class="btn2" href="/empresa/comecar">Cadastrar minha empresa</a>
+          <a class="btn2" href="/admin-login">Administração</a>
         {% endif %}
       </nav>
     </header>

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Acesso Administrativo - RADAR LOCAL{% endblock %}
+
+{% block content %}
+
+<div class="card" style="max-width:520px; margin:0 auto;">
+  <h2 style="margin-top:0;">Acesso administrativo</h2>
+
+  <p class="muted">
+    Entre com seu email e senha de administrador para acessar o painel.
+  </p>
+
+  <form method="post" action="/login" style="margin-top:16px;">
+    <input type="hidden" name="next_url" value="/admin">
+
+    <label>Email</label><br>
+    <input
+      type="email"
+      name="email"
+      required
+      style="width:100%; padding:10px; border-radius:10px; border:1px solid #2a3445;"
+    ><br><br>
+
+    <label>Senha</label><br>
+    <input
+      type="password"
+      name="password"
+      required
+      style="width:100%; padding:10px; border-radius:10px; border:1px solid #2a3445;"
+    ><br><br>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn" type="submit">Entrar no admin</button>
+      <a class="btn2" href="/">Voltar ao portal</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

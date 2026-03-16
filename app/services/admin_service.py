@@ -1,158 +1,113 @@
-from __future__ import annotations
+from datetime import date, timedelta
 
-from datetime import datetime, timedelta, date
-from typing import Dict, Any, Optional, List
-
+from sqlalchemy import func, cast, Date
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.models.order import Order
-from app.models.company import Company
 from app.models.user import User
+from app.models.product import Product
+from app.models.company import Company
 
 
-# =========================================================
-# HELPERS
-# =========================================================
+def get_admin_dashboard_metrics(db: Session) -> dict:
+    today = date.today()
 
-def _get_created_at_column():
-    if hasattr(Order, "created_at"):
-        return getattr(Order, "created_at")
-    if hasattr(Order, "created_on"):
-        return getattr(Order, "created_on")
-    if hasattr(Order, "createdAt"):
-        return getattr(Order, "createdAt")
-    return None
+    total_orders = db.query(func.count(Order.id)).scalar() or 0
+    total_users = db.query(func.count(User.id)).scalar() or 0
+    total_products = db.query(func.count(Product.id)).scalar() or 0
+    total_companies = db.query(func.count(Company.id)).scalar() or 0
 
-
-def _get_status_column():
-    if hasattr(Order, "status"):
-        return getattr(Order, "status")
-    return None
-
-
-def _safe_int(value) -> int:
-    try:
-        return int(value or 0)
-    except Exception:
-        return 0
-
-
-# =========================================================
-# DASHBOARD ADMIN
-# =========================================================
-
-def get_admin_dashboard_metrics(db: Session) -> Dict[str, Any]:
-    created_col = _get_created_at_column()
-    order_status_col = _get_status_column()
-
-    total_orders = _safe_int(db.query(func.count(Order.id)).scalar())
-    total_users = _safe_int(db.query(func.count(User.id)).scalar())
-    total_companies = _safe_int(db.query(func.count(Company.id)).scalar())
-
-    approved_companies = _safe_int(
-        db.query(func.count(Company.id))
-        .filter(Company.status == "approved")
+    paid_orders = (
+        db.query(func.count(Order.id))
+        .filter(Order.status == "pago")
         .scalar()
+        or 0
     )
 
-    pending_companies = _safe_int(
-        db.query(func.count(Company.id))
-        .filter(Company.status == "pending")
+    today_orders = (
+        db.query(func.count(Order.id))
+        .filter(cast(Order.created_at, Date) == today)
         .scalar()
+        or 0
     )
 
-    inactive_companies = _safe_int(
-        db.query(func.count(Company.id))
-        .filter(Company.status == "inactive")
+    today_revenue = (
+        db.query(func.coalesce(func.sum(Order.total), 0))
+        .filter(cast(Order.created_at, Date) == today)
+        .filter(Order.status == "pago")
         .scalar()
+        or 0
     )
 
-    orders_today = 0
-    if created_col is not None:
-        today = date.today()
-        orders_today = _safe_int(
-            db.query(func.count(Order.id))
-            .filter(func.date(created_col) == str(today))
-            .scalar()
-        )
-
-    status_counts: Dict[str, int] = {}
-    if order_status_col is not None:
-        rows = (
-            db.query(order_status_col, func.count(Order.id))
-            .group_by(order_status_col)
-            .all()
-        )
-        for status, count in rows:
-            key = str(status or "indefinido")
-            status_counts[key] = _safe_int(count)
+    pending_orders = (
+        db.query(func.count(Order.id))
+        .filter(Order.status == "novo")
+        .scalar()
+        or 0
+    )
 
     return {
-        "total_orders": total_orders,
-        "orders_today": orders_today,
-        "total_users": total_users,
-        "total_companies": total_companies,
-        "approved_companies": approved_companies,
-        "pending_companies": pending_companies,
-        "inactive_companies": inactive_companies,
-        "status_counts": status_counts,
-        "has_created_at": created_col is not None,
+        "total_orders": int(total_orders),
+        "total_users": int(total_users),
+        "total_products": int(total_products),
+        "total_companies": int(total_companies),
+        "paid_orders": int(paid_orders),
+        "today_orders": int(today_orders),
+        "today_revenue": float(today_revenue),
+        "pending_orders": int(pending_orders),
     }
 
 
-def get_dashboard_daily_series(db: Session, days: int = 30) -> List[Dict[str, Any]]:
-    created_col = _get_created_at_column()
+def get_dashboard_daily_series(db: Session, days: int = 7) -> list[dict]:
+    days = int(days)
+    start_date = date.today() - timedelta(days=days - 1)
 
-    if created_col is None:
-        return []
-
-    start_dt = datetime.now() - timedelta(days=days - 1)
+    created_day = cast(Order.created_at, Date)
 
     rows = (
         db.query(
-            func.date(created_col).label("d"),
-            func.count(Order.id).label("c")
+            created_day.label("day"),
+            func.count(Order.id).label("orders"),
+            func.coalesce(func.sum(Order.total), 0).label("revenue"),
         )
-        .filter(created_col >= start_dt)
-        .group_by(func.date(created_col))
+        .filter(created_day >= start_date)
+        .group_by(created_day)
+        .order_by(created_day.asc())
         .all()
     )
 
-    total_map = {str(d): _safe_int(c) for d, c in rows}
+    data_map = {
+        row.day: {
+            "orders": int(row.orders or 0),
+            "revenue": float(row.revenue or 0),
+        }
+        for row in rows
+    }
 
-    out: List[Dict[str, Any]] = []
-    for i in range(days):
-        d = date.today() - timedelta(days=(days - 1 - i))
-        ds = str(d)
-        out.append(
+    series = []
+    current = start_date
+
+    for _ in range(days):
+        item = data_map.get(current, {"orders": 0, "revenue": 0.0})
+        series.append(
             {
-                "date": ds,
-                "orders": _safe_int(total_map.get(ds, 0)),
+                "date": current.isoformat(),
+                "orders": item["orders"],
+                "revenue": item["revenue"],
             }
         )
+        current += timedelta(days=1)
 
-    return out
+    return series
 
 
-# =========================================================
-# PEDIDOS ADMIN
-# =========================================================
-
-def list_orders_admin(db: Session, status: Optional[str] = None):
+def list_orders_admin(db: Session, status: str | None = None):
     query = db.query(Order)
 
-    status_col = _get_status_column()
-    if status and status_col is not None:
-        query = query.filter(status_col == status)
+    if status:
+        query = query.filter(Order.status == status)
 
-    created_col = _get_created_at_column()
-    if created_col is not None:
-        query = query.order_by(created_col.desc())
-    else:
-        query = query.order_by(Order.id.desc())
-
-    return query.all()
+    return query.order_by(Order.id.desc()).all()
 
 
 def get_order_admin(db: Session, order_id: int):
@@ -161,12 +116,12 @@ def get_order_admin(db: Session, order_id: int):
 
 def update_order_status_admin(db: Session, order_id: int, status: str) -> bool:
     order = db.query(Order).filter(Order.id == int(order_id)).first()
+
     if not order:
         return False
 
-    if hasattr(order, "status"):
-        order.status = status
-        db.commit()
-        return True
+    order.status = status
+    db.commit()
+    db.refresh(order)
 
-    return False
+    return True

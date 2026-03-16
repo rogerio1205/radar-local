@@ -11,7 +11,6 @@ from app.services.order_service import validate_and_price_items, create_order_fr
 from app.db.session import SessionLocal
 from app.models.product import Product
 from app.models.order import Order
-from app.models.company import Company
 
 router = APIRouter()
 
@@ -70,7 +69,7 @@ def cart_page(request: Request):
             "items": cart,
             "total": total,
             "checkout_data": checkout_data,
-            "user_logged": True if user else False,
+            "user_logged": bool(user),
         },
     )
 
@@ -79,19 +78,21 @@ def cart_page(request: Request):
 def cart_add(request: Request, product_id: int = Form(...), qty: int = Form(...)):
     db: Session = SessionLocal()
     try:
-        p = db.query(Product).filter(Product.id == int(product_id)).first()
+        product = db.query(Product).filter(Product.id == int(product_id)).first()
     finally:
         db.close()
 
-    if not p:
+    if not product:
         flash(request, "Produto não encontrado.", "error")
-        return RedirectResponse("/", status_code=303)
+        return RedirectResponse("/mapa", status_code=303)
 
-    if not p.active:
+    if not getattr(product, "active", True):
         flash(request, "Produto está inativo.", "error")
-        return RedirectResponse("/", status_code=303)
+        return RedirectResponse("/mapa", status_code=303)
 
-    add_to_cart(request, p.id, p.name, float(p.price), int(qty))
+    qty = max(1, int(qty))
+
+    add_to_cart(request, product.id, product.name, float(product.price), qty)
     flash(request, "Produto adicionado ao carrinho.", "ok")
     return RedirectResponse("/cart", status_code=303)
 
@@ -111,7 +112,7 @@ def cart_checkout(
     cart = get_cart(request)
     if not cart:
         flash(request, "Seu carrinho está vazio.", "error")
-        return RedirectResponse("/", status_code=303)
+        return RedirectResponse("/cart", status_code=303)
 
     user = get_current_user(request)
     if not user:
@@ -173,9 +174,9 @@ def cart_checkout(
         flash(request, str(ve), "error")
         return RedirectResponse("/cart", status_code=303)
 
-    except Exception as e:
+    except Exception:
         db.rollback()
-        flash(request, f"Erro no checkout: {e}", "error")
+        flash(request, "Erro interno ao finalizar o pedido.", "error")
         return RedirectResponse("/cart", status_code=303)
 
     finally:
@@ -189,6 +190,8 @@ def meus_pedidos(request: Request):
         return guard
 
     user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login?next=/meus-pedidos", status_code=303)
 
     db: Session = SessionLocal()
     try:

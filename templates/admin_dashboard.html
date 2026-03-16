@@ -86,6 +86,19 @@
       gap:10px;
       flex-wrap:wrap;
     }
+    .admin-filters{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+      gap:12px;
+      margin-top:14px;
+    }
+    .admin-filters input,
+    .admin-filters select{
+      width:100%;
+      padding:10px;
+      border-radius:10px;
+      border:1px solid #2a3445;
+    }
   </style>
 
   <div class="admin-wrap">
@@ -116,27 +129,15 @@
       </div>
 
       <div class="admin-card">
-        <div class="admin-kpi-label">Empresas aprovadas</div>
-        <div class="admin-kpi-value">{{ metrics.approved_companies if metrics else 0 }}</div>
-        <div class="admin-kpi-help">Empresas liberadas para operar no portal.</div>
-      </div>
-
-      <div class="admin-card">
-        <div class="admin-kpi-label">Empresas pendentes</div>
-        <div class="admin-kpi-value">{{ metrics.pending_companies if metrics else 0 }}</div>
-        <div class="admin-kpi-help">Empresas aguardando análise.</div>
-      </div>
-
-      <div class="admin-card">
-        <div class="admin-kpi-label">Empresas inativas</div>
-        <div class="admin-kpi-value">{{ metrics.inactive_companies if metrics else 0 }}</div>
-        <div class="admin-kpi-help">Empresas fora de operação no portal.</div>
-      </div>
-
-      <div class="admin-card">
         <div class="admin-kpi-label">Usuários cadastrados</div>
         <div class="admin-kpi-value">{{ metrics.total_users if metrics else 0 }}</div>
         <div class="admin-kpi-help">Base total de usuários da plataforma.</div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-kpi-label">Produtos cadastrados</div>
+        <div class="admin-kpi-value">{{ metrics.total_products if metrics else 0 }}</div>
+        <div class="admin-kpi-help">Produtos disponíveis no banco da plataforma.</div>
       </div>
 
       <div class="admin-card">
@@ -146,10 +147,126 @@
       </div>
 
       <div class="admin-card">
+        <div class="admin-kpi-label">Pedidos pagos</div>
+        <div class="admin-kpi-value">{{ metrics.paid_orders if metrics else 0 }}</div>
+        <div class="admin-kpi-help">Pedidos já marcados como pagos.</div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-kpi-label">Pedidos pendentes</div>
+        <div class="admin-kpi-value">{{ metrics.pending_orders if metrics else 0 }}</div>
+        <div class="admin-kpi-help">Pedidos novos aguardando andamento.</div>
+      </div>
+
+      <div class="admin-card">
         <div class="admin-kpi-label">Pedidos hoje</div>
-        <div class="admin-kpi-value">{{ metrics.orders_today if metrics else 0 }}</div>
+        <div class="admin-kpi-value">{{ metrics.today_orders if metrics else 0 }}</div>
         <div class="admin-kpi-help">Movimento diário da plataforma.</div>
       </div>
+
+      <div class="admin-card">
+        <div class="admin-kpi-label">Receita hoje</div>
+        <div class="admin-kpi-value">R$ {{ '%.2f'|format(metrics.today_revenue if metrics else 0) }}</div>
+        <div class="admin-kpi-help">Soma dos pedidos pagos do dia.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Filtros rápidos de empresas</h2>
+
+      <form method="get" action="/admin">
+        <div class="admin-filters">
+          <div>
+            <label>Nome, email ou especialidade</label>
+            <input
+              type="text"
+              name="q"
+              value="{{ filters.q if filters else '' }}"
+              placeholder="Ex: peixe, mercado, loja..."
+            >
+          </div>
+
+          <div>
+            <label>Cidade</label>
+            <input
+              type="text"
+              name="city"
+              value="{{ filters.city if filters else '' }}"
+              placeholder="Ex: Campinas"
+            >
+          </div>
+
+          <div>
+            <label>Status</label>
+            <select name="status">
+              <option value="">Todos</option>
+              <option value="approved" {% if filters and filters.status == 'approved' %}selected{% endif %}>approved</option>
+              <option value="pending" {% if filters and filters.status == 'pending' %}selected{% endif %}>pending</option>
+              <option value="imported" {% if filters and filters.status == 'imported' %}selected{% endif %}>imported</option>
+              <option value="inactive" {% if filters and filters.status == 'inactive' %}selected{% endif %}>inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="admin-actions" style="margin-top:14px;">
+          <button class="btn" type="submit">Filtrar</button>
+          <a class="btn2" href="/admin">Limpar</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Empresas localizadas</h2>
+
+      {% if companies and companies|length > 0 %}
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Empresa</th>
+              <th>Cidade</th>
+              <th>Status</th>
+              <th>Contato</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for company in companies %}
+              <tr>
+                <td>{{ company.id }}</td>
+                <td>
+                  <strong>{{ company.name }}</strong><br>
+                  <span class="muted">{{ company.description or "" }}</span>
+                </td>
+                <td>
+                  {{ company.city or "-" }}{% if company.state %} - {{ company.state }}{% endif %}
+                </td>
+                <td>
+                  {% set st = company.status or '-' %}
+                  {% if st == 'approved' %}
+                    <span class="badge badge-green">{{ st }}</span>
+                  {% elif st == 'pending' %}
+                    <span class="badge badge-yellow">{{ st }}</span>
+                  {% elif st == 'inactive' %}
+                    <span class="badge badge-red">{{ st }}</span>
+                  {% else %}
+                    <span class="badge badge-blue">{{ st }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {{ company.email or "-" }}<br>
+                  <span class="muted">{{ company.phone or "" }}</span>
+                </td>
+                <td>
+                  <a class="btn2" href="/loja/{{ company.id }}">Ver loja</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="muted" style="margin-bottom:0;">Nenhuma empresa encontrada com os filtros atuais.</p>
+      {% endif %}
     </div>
 
     <div class="admin-list">
@@ -159,7 +276,7 @@
           O administrador atua sobre a plataforma e sua governança.
         </p>
         <ul>
-          <li>Acompanhar empresas cadastradas e pendentes</li>
+          <li>Acompanhar empresas cadastradas</li>
           <li>Corrigir falhas estruturais e erros técnicos</li>
           <li>Melhorar cadastro, navegação e funcionamento geral</li>
           <li>Monitorar pedidos em visão global de suporte</li>
@@ -197,37 +314,42 @@
           <tr>
             <td>Empresas cadastradas</td>
             <td><span class="badge badge-blue">{{ metrics.total_companies if metrics else 0 }}</span></td>
-            <td>Governança e liberação de empresas</td>
-          </tr>
-          <tr>
-            <td>Empresas aprovadas</td>
-            <td><span class="badge badge-green">{{ metrics.approved_companies if metrics else 0 }}</span></td>
-            <td>Controle de operação pública no portal</td>
-          </tr>
-          <tr>
-            <td>Empresas pendentes</td>
-            <td><span class="badge badge-yellow">{{ metrics.pending_companies if metrics else 0 }}</span></td>
-            <td>Fila de análise administrativa</td>
-          </tr>
-          <tr>
-            <td>Empresas inativas</td>
-            <td><span class="badge badge-red">{{ metrics.inactive_companies if metrics else 0 }}</span></td>
-            <td>Acompanhamento de status do portal</td>
+            <td>Governança e acompanhamento da base</td>
           </tr>
           <tr>
             <td>Usuários cadastrados</td>
-            <td>{{ metrics.total_users if metrics else 0 }}</td>
+            <td><span class="badge badge-green">{{ metrics.total_users if metrics else 0 }}</span></td>
             <td>Crescimento da plataforma</td>
           </tr>
           <tr>
+            <td>Produtos cadastrados</td>
+            <td><span class="badge badge-yellow">{{ metrics.total_products if metrics else 0 }}</span></td>
+            <td>Saúde do catálogo</td>
+          </tr>
+          <tr>
             <td>Pedidos da plataforma</td>
-            <td>{{ metrics.total_orders if metrics else 0 }}</td>
-            <td>Saúde geral do portal</td>
+            <td><span class="badge badge-blue">{{ metrics.total_orders if metrics else 0 }}</span></td>
+            <td>Monitoramento operacional</td>
+          </tr>
+          <tr>
+            <td>Pedidos pagos</td>
+            <td><span class="badge badge-green">{{ metrics.paid_orders if metrics else 0 }}</span></td>
+            <td>Controle do fluxo pago</td>
+          </tr>
+          <tr>
+            <td>Pedidos pendentes</td>
+            <td><span class="badge badge-red">{{ metrics.pending_orders if metrics else 0 }}</span></td>
+            <td>Fila de atenção operacional</td>
           </tr>
           <tr>
             <td>Pedidos hoje</td>
-            <td>{{ metrics.orders_today if metrics else 0 }}</td>
+            <td>{{ metrics.today_orders if metrics else 0 }}</td>
             <td>Movimento diário da plataforma</td>
+          </tr>
+          <tr>
+            <td>Receita hoje</td>
+            <td>R$ {{ '%.2f'|format(metrics.today_revenue if metrics else 0) }}</td>
+            <td>Visão rápida de receita diária</td>
           </tr>
           <tr>
             <td>Série 7 dias</td>

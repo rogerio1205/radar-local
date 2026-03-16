@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}RADAR LOCAL - Ir até a loja{% endblock %}
+
+{% block content %}
+
+<div class="card" style="margin-bottom:20px;">
+
+  <h1 style="margin-top:0;">Ir até a loja</h1>
+
+  <p class="muted">
+    Escolha qual aplicativo deseja usar para navegar até a empresa.
+  </p>
+
+</div>
+
+
+<div class="card" style="margin-bottom:20px;">
+
+  <h2 style="margin-top:0;">{{ company.name }}</h2>
+
+  <p class="muted">
+    {{ company.address or "Endereço não informado" }}
+  </p>
+
+  <p class="muted">
+    {{ company.city or "" }}{% if company.state %} - {{ company.state }}{% endif %}
+  </p>
+
+</div>
+
+
+<div class="card">
+
+  <h2 style="margin-top:0;">Escolher navegação</h2>
+
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
+
+    <a
+      class="btn"
+      href="{{ google_maps_link }}"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Abrir no Google Maps
+    </a>
+
+    <a
+      class="btn2"
+      href="{{ waze_link }}"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Abrir no Waze
+    </a>
+
+  </div>
+
+  <p class="muted" style="margin-top:16px;">
+    O RADAR LOCAL apenas fornece a rota. A navegação é feita pelo aplicativo escolhido.
+  </p>
+
+</div>
+
+{% endblock %}

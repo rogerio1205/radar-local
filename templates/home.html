@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}RADAR LOCAL{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <h1>Bem-vindo ao RADAR LOCAL</h1>
+  <p class="muted">
+    Encontre fornecedores próximos, veja produtos disponíveis e faça seus pedidos rapidamente.
+  </p>
+</div>
+
+<br>
+
+<div class="card">
+  <h2>Explorar</h2>
+
+  <p class="muted">
+    Utilize o mapa para encontrar empresas próximas a você.
+  </p>
+
+  <br>
+
+  <a class="btn" href="/mapa">Abrir mapa de empresas</a>
+
+</div>
+
+<br>
+
+<div class="card">
+  <h2>Como funciona</h2>
+
+  <ul>
+    <li>🔎 Encontre empresas próximas no mapa</li>
+    <li>🛒 Escolha produtos disponíveis</li>
+    <li>📦 Faça seu pedido</li>
+    <li>💳 Pague via PIX</li>
+  </ul>
+
+</div>
+
+<br>
+
+<div class="card">
+  <h2>Empresas</h2>
+
+  <p class="muted">
+    Tem um negócio local? Cadastre sua empresa e comece a vender.
+  </p>
+
+  <br>
+
+  <a class="btn2" href="/empresa/cadastrar">Cadastrar minha empresa</a>
+
+</div>
+
+{% endblock %}

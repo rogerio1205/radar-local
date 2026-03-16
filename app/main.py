@@ -10,6 +10,7 @@ from app.db.session import Base, engine
 import app.models
 
 from app.core.flash import pop_flashes
+from app.services.auth_service import get_current_user
 
 # Routers WEB
 from app.routers.web_auth import router as web_auth_router
@@ -30,6 +31,7 @@ from app.routers.company_products import router as company_products_router
 from app.routers.company_data import router as company_data_router
 from app.routers.company_clients import router as company_clients_router
 from app.routers.company_orders import router as company_orders_router
+from app.routers.company_import import router as company_import_router
 
 # Admin
 from app.routers.admin import router as admin_router
@@ -90,10 +92,13 @@ def tpl(request: Request, name: str, context: dict | None = None, status_code: i
     if context:
         ctx.update(context)
 
+    current_user = get_current_user(request)
+
     ctx.update(
         {
             "request": request,
             "flashes": pop_flashes(request),
+            "current_user": current_user,
         }
     )
 
@@ -125,6 +130,7 @@ app.include_router(company_products_router)
 app.include_router(company_data_router)
 app.include_router(company_clients_router)
 app.include_router(company_orders_router)
+app.include_router(company_import_router)
 
 # ADMIN
 app.include_router(admin_router)

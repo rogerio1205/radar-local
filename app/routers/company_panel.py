@@ -15,6 +15,22 @@ def tpl(request: Request, name: str, context: dict | None = None, status_code: i
     return request.app.state.tpl(request, name, context, status_code)
 
 
+def ensure_company_users_table(db: Session) -> None:
+    db.execute(
+        text(
+            """
+            CREATE TABLE IF NOT EXISTS company_users (
+                id SERIAL PRIMARY KEY,
+                company_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                role VARCHAR(50) NOT NULL DEFAULT 'owner'
+            )
+            """
+        )
+    )
+    db.commit()
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 def empresa_dashboard(request: Request):
     guard = require_login(request, next_url="/empresa/dashboard")
@@ -27,6 +43,8 @@ def empresa_dashboard(request: Request):
 
     db: Session = SessionLocal()
     try:
+        ensure_company_users_table(db)
+
         empresa = db.execute(
             text(
                 """
@@ -41,8 +59,8 @@ def empresa_dashboard(request: Request):
         ).fetchone()
 
         if not empresa:
-            flash(request, "Você ainda não possui empresa cadastrada.", "error")
-            return RedirectResponse("/empresa/cadastrar", status_code=303)
+            flash(request, "Você ainda não possui empresa vinculada.", "error")
+            return RedirectResponse("/mapa", status_code=303)
 
         empresa_id = int(empresa[0])
         empresa_nome = empresa[1]

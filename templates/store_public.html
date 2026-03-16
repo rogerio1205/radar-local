@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}RADAR LOCAL - Loja{% endblock %}
+
+{% block content %}
+
+  <div class="card" style="margin-bottom:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+      <div>
+        <h1 style="margin-top:0; margin-bottom:8px;">{{ company.name }}</h1>
+
+        <p class="muted" style="margin:0;">
+          {{ company.description or "Empresa disponível no RADAR LOCAL." }}
+        </p>
+      </div>
+
+      {% if company.logo %}
+        <div>
+          <img
+            src="/static/uploads/logos/{{ company.logo }}"
+            alt="Logo de {{ company.name }}"
+            style="width:110px; height:110px; object-fit:contain; border-radius:12px; background:#fff; padding:8px; border:1px solid #2a3445;"
+          >
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <h2 style="margin-top:0;">Dados da empresa</h2>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
+      <div>
+        <strong>Nome</strong>
+        <p class="muted" style="margin:6px 0 0 0;">{{ company.name }}</p>
+      </div>
+
+      <div>
+        <strong>Telefone</strong>
+        <p class="muted" style="margin:6px 0 0 0;">{{ company.phone or "Não informado" }}</p>
+      </div>
+
+      <div>
+        <strong>Cidade</strong>
+        <p class="muted" style="margin:6px 0 0 0;">
+          {{ company.city or "Não informada" }}{% if company.state %} - {{ company.state }}{% endif %}
+        </p>
+      </div>
+
+      <div>
+        <strong>Endereço</strong>
+        <p class="muted" style="margin:6px 0 0 0;">{{ company.address or "Não informado" }}</p>
+      </div>
+
+      <div>
+        <strong>Especialidades</strong>
+        <p class="muted" style="margin:6px 0 0 0;">{{ company.specialties or "Não informado" }}</p>
+      </div>
+
+      <div>
+        <strong>Status</strong>
+        <p class="muted" style="margin:6px 0 0 0;">{{ company.status or "Não definido" }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <h2 style="margin-top:0;">Ações</h2>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+      {% if current_user %}
+        <a class="btn" href="/empresa/cadastrar?company_id={{ company.id }}">Sou dono desta empresa</a>
+      {% else %}
+        <a class="btn" href="/login?next=/empresa/cadastrar?company_id={{ company.id }}">Sou dono desta empresa</a>
+      {% endif %}
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      {% if current_user %}
+        {% if company.latitude and company.longitude %}
+          <a
+            class="btn2"
+            href="https://waze.com/ul?ll={{ company.latitude }},{{ company.longitude }}&navigate=yes"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Waze
+          </a>
+
+          <a
+            class="btn2"
+            href="https://www.google.com/maps?q={{ company.latitude }},{{ company.longitude }}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Google Maps
+          </a>
+
+          <a
+            class="btn2"
+            href="https://www.openstreetmap.org/?mlat={{ company.latitude }}&mlon={{ company.longitude }}#map=18/{{ company.latitude }}/{{ company.longitude }}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            OpenStreetMap
+          </a>
+        {% else %}
+          <a
+            class="btn2"
+            href="https://waze.com/ul?q={{ (company.address or company.name)|urlencode }}&navigate=yes"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Waze
+          </a>
+
+          <a
+            class="btn2"
+            href="https://www.google.com/maps/search/?api=1&query={{ (company.address or company.name)|urlencode }}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Google Maps
+          </a>
+
+          {% if company.map_link %}
+            <a
+              class="btn2"
+              href="{{ company.map_link }}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              OpenStreetMap
+            </a>
+          {% else %}
+            <a
+              class="btn2"
+              href="https://www.openstreetmap.org/search?query={{ (company.address or company.name)|urlencode }}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              OpenStreetMap
+            </a>
+          {% endif %}
+        {% endif %}
+      {% else %}
+        <a class="btn2" href="/login?next=/loja/{{ company.id }}">Waze</a>
+        <a class="btn2" href="/login?next=/loja/{{ company.id }}">Google Maps</a>
+        <a class="btn2" href="/login?next=/loja/{{ company.id }}">OpenStreetMap</a>
+      {% endif %}
+    </div>
+
+    <p class="muted" style="margin-top:12px; margin-bottom:0;">
+      Se esta empresa ainda não possui dono no RADAR LOCAL, o responsável pode reivindicar o painel e completar os dados do negócio.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0;">Produtos</h2>
+
+    {% if products and products|length > 0 %}
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+        {% for product in products %}
+          <div class="card">
+            <h3 style="margin-top:0; margin-bottom:8px;">{{ product.name }}</h3>
+
+            <p class="muted" style="margin:0 0 10px 0;">
+              {{ product.description or "Produto disponível nesta loja." }}
+            </p>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+              {% if product.category %}
+                <span class="badge badge-yellow">{{ product.category }}</span>
+              {% endif %}
+
+              <span class="badge badge-green">R$ {{ '%.2f'|format(product.price) }}</span>
+            </div>
+
+            {% if current_user %}
+              <form method="post" action="/cart/add">
+                <input type="hidden" name="product_id" value="{{ product.id }}">
+                <input type="hidden" name="qty" value="1">
+                <button class="btn" type="submit">Adicionar ao carrinho</button>
+              </form>
+            {% else %}
+              <a class="btn" href="/login?next=/loja/{{ company.id }}">Entrar para comprar</a>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted" style="margin-bottom:0;">Esta empresa ainda não cadastrou produtos no portal.</p>
+    {% endif %}
+  </div>
+
+{% endblock %}
