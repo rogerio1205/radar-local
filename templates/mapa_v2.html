@@ -1,0 +1,847 @@
+{% extends "base.html" %}
+{% block title %}Rota Local{% endblock %}
+
+{% block content %}
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .gm-shell {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    height: calc(100vh - 110px);
+    border-radius: 18px;
+    overflow: hidden;
+    background: #0b0d10;
+    box-shadow: 0 8px 40px rgba(0,0,0,.35);
+    border: 1px solid #1b2330;
+  }
+
+  .gm-sidebar {
+    display: flex;
+    flex-direction: column;
+    background: #0f141b;
+    border-right: 1px solid #1b2330;
+    overflow: hidden;
+  }
+
+  .gm-search-wrap {
+    padding: 16px;
+    background: #0a0e13;
+    border-bottom: 1px solid #1b2330;
+    flex-shrink: 0;
+  }
+
+  .gm-brand-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -.02em;
+    margin-bottom: 4px;
+  }
+
+  .gm-brand-subtitle {
+    font-size: 12px;
+    color: #7a90aa;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  .gm-search-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .gm-search-input-wrap {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .gm-search-icon {
+    position: absolute;
+    left: 12px;
+    color: #7a90aa;
+    pointer-events: none;
+    font-size: 16px;
+  }
+
+  .gm-search-input {
+    width: 100%;
+    height: 46px;
+    border-radius: 24px;
+    border: 1px solid #2a3445;
+    background: #141c26;
+    color: #eef4ff;
+    padding: 0 14px 0 38px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+
+  .gm-search-input:focus {
+    border-color: #4285f4;
+    box-shadow: 0 0 0 3px rgba(66,133,244,.18);
+  }
+
+  .gm-search-input::placeholder { color: #4a5e78; }
+
+  .gm-btn {
+    height: 46px;
+    padding: 0 18px;
+    border-radius: 24px;
+    border: none;
+    background: #4285f4;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s, transform .1s;
+  }
+
+  .gm-btn:hover  { background: #3b78e7; }
+  .gm-btn:active { transform: scale(.97); }
+
+  .gm-btn-gps {
+    height: 46px;
+    width: 46px;
+    border-radius: 50%;
+    border: 1px solid #2a3445;
+    background: #141c26;
+    color: #7a90aa;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+
+  .gm-btn-gps:hover     { border-color: #4285f4; color: #4285f4; }
+  .gm-btn-gps.is-active { background: #0d2a1a; border-color: #34a853; color: #34a853; }
+  .gm-btn-gps:disabled  { opacity: .5; cursor: not-allowed; }
+
+  .gm-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid #1b2330;
+    font-size: 12px;
+    color: #7a90aa;
+    flex-shrink: 0;
+    background: #0c1117;
+    gap: 8px;
+  }
+
+  #results-label { color: #aabdd4; font-weight: 500; }
+  #debug-text    { color: #4a5e78; font-size: 11px; white-space: nowrap; }
+
+  .gm-results {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: #1b2330 transparent;
+  }
+
+  .gm-results::-webkit-scrollbar       { width: 4px; }
+  .gm-results::-webkit-scrollbar-thumb { background: #1b2330; border-radius: 4px; }
+
+  .gm-empty {
+    padding: 24px 16px;
+    text-align: center;
+    color: #4a5e78;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .gm-card {
+    border: 1px solid #1b2330;
+    border-radius: 12px;
+    background: #0d131b;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+
+  .gm-card:hover     { background: #101821; border-color: #2a3a55; }
+  .gm-card.is-active {
+    border-color: #4285f4;
+    background: #0d1a2e;
+    box-shadow: 0 0 0 1px rgba(66,133,244,.25);
+  }
+
+  .gm-card-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #4285f4;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .gm-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #eef4ff;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+
+  .gm-card-address {
+    font-size: 12px;
+    color: #7a90aa;
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+
+  .gm-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .gm-badge {
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #131e2d;
+    border: 1px solid #1e2e45;
+    color: #8fa8cc;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .gm-badge-open   { background: #0d2a1a; border-color: #1a5c30; color: #4cca72; }
+  .gm-badge-closed { background: #1e080a; border-color: #4a1520; color: #f87171; }
+  .gm-badge-dist   { background: #0f1e36; border-color: #1a3766; color: #6aabff; }
+
+  .gm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .gm-actions button,
+  .gm-actions a {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid #2a3445;
+    background: #121924;
+    color: #c8d8f0;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    gap: 4px;
+  }
+
+  .gm-actions button:hover,
+  .gm-actions a:hover      { background: #1a2640; border-color: #3a5080; }
+  .gm-actions .primary     { background: #4285f4; border-color: #4285f4; color: #fff; }
+  .gm-actions .primary:hover { background: #3b78e7; border-color: #3b78e7; }
+
+  .gm-map-wrap {
+    position: relative;
+    background: #0c1117;
+    overflow: hidden;
+  }
+
+  #mapa-v2-canvas { width: 100%; height: 100%; }
+
+  .gm-map-status {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    z-index: 4;
+    background: rgba(10,14,19,.88);
+    border: 1px solid #1e2e45;
+    color: #8fa8cc;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 11px;
+    backdrop-filter: blur(6px);
+    pointer-events: none;
+  }
+
+  .gm-error {
+    margin: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #1e0a0c;
+    border: 1px solid #6a1e26;
+    color: #ffb3ba;
+    font-size: 13px;
+  }
+
+  .gm-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #2a3a55;
+    border-top-color: #4285f4;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 900px) {
+    .gm-shell {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 55vh;
+      height: auto;
+    }
+    .gm-sidebar  { max-height: 60vh; }
+    .gm-map-wrap { height: 55vh; }
+  }
+
+  /* ── Marcador GPS customizado ── */
+  .gm-gps-dot {
+    width: 18px;
+    height: 18px;
+    background: #4285f4;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(66,133,244,.35);
+  }
+</style>
+
+<div class="gm-shell">
+
+  <!-- SIDEBAR -->
+  <section class="gm-sidebar">
+    <div class="gm-search-wrap">
+      <div class="gm-brand-title">🗺 Rota Local</div>
+      <p class="gm-brand-subtitle">Busca inteligente com GPS e Places API</p>
+      <div class="gm-search-bar">
+        <div class="gm-search-input-wrap">
+          <span class="gm-search-icon">🔍</span>
+          <input
+            id="query-text"
+            class="gm-search-input"
+            type="text"
+            placeholder="Farmácia, pet shop, restaurante..."
+            autocomplete="off"
+          >
+        </div>
+        <button class="gm-btn" id="btn-search">Buscar</button>
+        <button class="gm-btn-gps" id="btn-near-me" title="Usar minha localização">📍</button>
+      </div>
+    </div>
+
+    <div class="gm-meta">
+      <span id="results-label">Digite para pesquisar</span>
+      <span id="debug-text">Carregando...</span>
+    </div>
+
+    <div id="results-list" class="gm-results">
+      <div class="gm-empty">🔍 Pesquise por qualquer estabelecimento, produto ou serviço.</div>
+    </div>
+  </section>
+
+  <!-- MAPA -->
+  <section class="gm-map-wrap">
+    {% if not google_maps_js_key %}
+      <div class="gm-error">
+        ⚠️ <strong>Chave do Google Maps não encontrada.</strong>
+        Configure a variável <code>GOOGLE_MAPS_JS_KEY</code>.
+      </div>
+    {% endif %}
+    <div id="mapa-v2-canvas"></div>
+    <div class="gm-map-status" id="map-status">Aguardando...</div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ════════════════════════════════════
+     CONFIG
+  ════════════════════════════════════ */
+  const MAPS_KEY       = {{ google_maps_js_key | tojson }};
+  const DEFAULT_CENTER = { lat: -23.6848, lng: -46.6205 };
+  const ZOOM_DEFAULT   = 14;
+  const ZOOM_FOCUS     = 17;
+  const ZOOM_GPS       = 18;
+  const MAX_RESULTS    = 12;
+  const GPS_RADIUS     = 10000;
+  // ✅ Map ID obrigatório para AdvancedMarkerElement
+  const MAP_ID         = "DEMO_MAP_ID";
+
+  /* ════════════════════════════════════
+     ESTADO
+  ════════════════════════════════════ */
+  let map, infoWindow, placesService;
+  let markers             = [];
+  let myLocationMarker    = null;
+  let myLocationCircle    = null;
+  let currentUserLocation = null;
+  let activeIndex         = -1;
+  let searching           = false;
+
+  /* ════════════════════════════════════
+     DOM
+  ════════════════════════════════════ */
+  const inputEl   = document.getElementById("query-text");
+  const btnSearch = document.getElementById("btn-search");
+  const btnNearMe = document.getElementById("btn-near-me");
+  const listEl    = document.getElementById("results-list");
+  const labelEl   = document.getElementById("results-label");
+  const debugEl   = document.getElementById("debug-text");
+  const statusEl  = document.getElementById("map-status");
+
+  /* ════════════════════════════════════
+     HELPERS
+  ════════════════════════════════════ */
+  function esc(v) {
+    return String(v ?? "")
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">")
+      .replace(/"/g, "&quot;");
+  }
+
+  function norm(v) {
+    return String(v ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase().trim();
+  }
+
+  function setDebug(msg, spinner) {
+    debugEl.innerHTML = spinner
+      ? '<span class="gm-spinner"></span>' + esc(msg)
+      : esc(msg);
+  }
+
+  function setLabel(msg)  { labelEl.textContent = msg; }
+  function setStatus(msg) { statusEl.textContent = msg; }
+
+  function haversineKm(lat1, lng1, lat2, lng2) {
+    var R = 6371, r = Math.PI / 180;
+    var dLat = (lat2 - lat1) * r;
+    var dLng = (lng2 - lng1) * r;
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2)
+          + Math.cos(lat1*r) * Math.cos(lat2*r)
+          * Math.sin(dLng/2) * Math.sin(dLng/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  /* ════════════════════════════════════
+     MARCADORES
+  ════════════════════════════════════ */
+  function clearMarkers() {
+    markers.forEach(function(m) { m.map = null; });
+    markers = [];
+    if (infoWindow) infoWindow.close();
+    activeIndex = -1;
+  }
+
+  function clearMyLocation() {
+    if (myLocationMarker) { myLocationMarker.map = null; myLocationMarker = null; }
+    if (myLocationCircle) { myLocationCircle.setMap(null); myLocationCircle = null; }
+  }
+
+  /* ════════════════════════════════════
+     LINKS EXTERNOS
+  ════════════════════════════════════ */
+  function mapsUrl(p) {
+    var q  = encodeURIComponent(p.name || "");
+    var id = p.place_id ? "&query_place_id=" + encodeURIComponent(p.place_id) : "";
+    return "https://www.google.com/maps/search/?api=1&query=" + q + id;
+  }
+
+  function wazeUrl(p) {
+    var loc = p.geometry && p.geometry.location;
+    if (!loc) return "#";
+    return "https://waze.com/ul?ll=" + loc.lat() + "," + loc.lng() + "&navigate=yes";
+  }
+
+  /* ════════════════════════════════════
+     RANKING
+  ════════════════════════════════════ */
+  function rankResults(results, query) {
+    var terms = norm(query).split(/\s+/).filter(Boolean);
+    var center = currentUserLocation
+      ? { lat: currentUserLocation.lat, lng: currentUserLocation.lng }
+      : { lat: map.getCenter().lat(), lng: map.getCenter().lng() };
+
+    var items = results
+      .filter(function(p) { return p && p.geometry && p.geometry.location; })
+      .map(function(p) {
+        var lat  = p.geometry.location.lat();
+        var lng  = p.geometry.location.lng();
+        var dist = haversineKm(center.lat, center.lng, lat, lng);
+        var name = norm(p.name || "");
+        var score = 0;
+
+        terms.forEach(function(t) {
+          if (name.includes(t))
+            score += 200;
+          else if (norm(p.vicinity || "").includes(t))
+            score += 60;
+          else if ((p.types || []).some(function(tp) { return norm(tp).includes(t); }))
+            score += 40;
+        });
+
+        score += (p.rating || 0) * 50;
+        score += Math.min(p.user_ratings_total || 0, 1000) * 0.3;
+        if (currentUserLocation) score -= dist * 20;
+
+        return { place: p, dist: dist, score: score };
+      });
+
+    items.sort(function(a, b) { return b.score - a.score; });
+    return items.slice(0, MAX_RESULTS);
+  }
+
+  /* ════════════════════════════════════
+     FOCO NO LUGAR
+  ════════════════════════════════════ */
+  function focusPlace(idx, marker, place) {
+    activeIndex = idx;
+    document.querySelectorAll(".gm-card").forEach(function(c, i) {
+      c.classList.toggle("is-active", i === idx);
+    });
+
+    map.setCenter(place.geometry.location);
+    map.setZoom(ZOOM_FOCUS);
+
+infoWindow.setContent(
+  '<div style="min-width:200px;color:#111;font-family:sans-serif">' +
+
+    '<strong style="font-size:13px">' + esc(place.name) + '</strong><br>' +
+
+    '<small style="color:#555;display:block;margin-bottom:6px;font-size:11px">' +
+      esc(place.formatted_address || place.vicinity || "") +
+    '</small>' +
+
+    '<div style="display:flex;gap:4px;flex-wrap:wrap">' +
+
+      '<a href="' + esc(mapsUrl(place)) + '" target="_blank" ' +
+      'style="padding:4px 8px;border-radius:6px;background:#4285f4;color:#fff;font-size:10px;text-decoration:none">' +
+      '🗺 Maps</a>' +
+
+      '<a href="' + esc(wazeUrl(place)) + '" target="_blank" ' +
+      'style="padding:4px 8px;border-radius:6px;background:#34a853;color:#fff;font-size:10px;text-decoration:none">' +
+      '🚗 Waze</a>' +
+
+    '</div>' +
+
+  '</div>'
+);
+    infoWindow.open({ anchor: marker, map: map });
+    setLabel("📍 " + (place.name || "Local"));
+  }
+
+  /* ════════════════════════════════════
+     RENDERIZAR RESULTADOS
+     ✅ Usa AdvancedMarkerElement com PinElement
+  ════════════════════════════════════ */
+  function renderResults(items) {
+    clearMarkers();
+    listEl.innerHTML = "";
+
+    if (!items || !items.length) {
+      setLabel("Nenhum resultado encontrado");
+      listEl.innerHTML = '<div class="gm-empty">Nenhum resultado.<br>Tente termos diferentes.</div>';
+      return;
+    }
+
+    setLabel(items.length + " resultado" + (items.length > 1 ? "s" : "") + " encontrado" + (items.length > 1 ? "s" : ""));
+
+    items.forEach(function(item, idx) {
+      var place = item.place;
+
+      /* ✅ PinElement com número */
+      var pin = new google.maps.marker.PinElement({
+        glyph: String(idx + 1),
+        glyphColor: "#fff",
+        background: "#4285f4",
+        borderColor: "#2d6cdf"
+      });
+
+      /* ✅ AdvancedMarkerElement — substitui google.maps.Marker */
+      var marker = new google.maps.marker.AdvancedMarkerElement({
+        map:      map,
+        position: place.geometry.location,
+        title:    place.name || "Resultado",
+        content:  pin.element
+      });
+
+      markers.push(marker);
+
+      marker.addListener("click", function() {
+        focusPlace(idx, marker, place);
+      });
+
+      /* Badges */
+      var open = place.opening_hours && place.opening_hours.open_now;
+      var openBadge = open === true
+        ? '<span class="gm-badge gm-badge-open">Aberto agora</span>'
+        : open === false
+          ? '<span class="gm-badge gm-badge-closed">Fechado</span>'
+          : "";
+
+      var distBadge = currentUserLocation
+        ? '<span class="gm-badge gm-badge-dist">📏 ' +
+            item.dist.toFixed(1).replace(".", ",") + ' km</span>'
+        : "";
+
+      var ratingBadge = place.rating
+        ? '<span class="gm-badge">⭐ ' + esc(place.rating) +
+          (place.user_ratings_total
+            ? ' (' + esc(place.user_ratings_total) + ')'
+            : '') +
+          '</span>'
+        : "";
+
+      /* Card */
+      var card = document.createElement("div");
+      card.className = "gm-card";
+      card.innerHTML =
+        '<div style="display:flex;align-items:flex-start;gap:10px">' +
+          '<div class="gm-card-index">' + (idx + 1) + '</div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div class="gm-card-title">' + esc(place.name) + '</div>' +
+            '<div class="gm-card-address">' +
+              esc(place.formatted_address || place.vicinity || "Endereço não disponível") +
+            '</div>' +
+            '<div class="gm-badges">' + distBadge + ratingBadge + openBadge + '</div>' +
+            '<div class="gm-actions">' +
+              '<button class="primary" data-focus>📌 Ver no mapa</button>' +
+              '<a href="' + esc(mapsUrl(place)) + '" target="_blank" rel="noopener">🗺 Maps</a>' +
+              '<a href="' + esc(wazeUrl(place)) + '" target="_blank" rel="noopener">🚗 Waze</a>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+
+      card.addEventListener("click", function() { focusPlace(idx, marker, place); });
+      card.querySelector("[data-focus]").addEventListener("click", function(e) {
+        e.stopPropagation();
+        focusPlace(idx, marker, place);
+      });
+
+      listEl.appendChild(card);
+    });
+
+    /* Foca no melhor */
+    if (markers[0]) {
+      focusPlace(0, markers[0], items[0].place);
+      map.setZoom(15);
+    }
+  }
+
+  /* ════════════════════════════════════
+     BUSCA
+  ════════════════════════════════════ */
+  function runSearch(query) {
+    query = (query || "").trim();
+    if (!query || !placesService || searching) return;
+
+    searching = true;
+    setDebug("Buscando...", true);
+
+    var req = { query: query };
+    if (currentUserLocation) {
+      req.location = new google.maps.LatLng(
+        currentUserLocation.lat,
+        currentUserLocation.lng
+      );
+      req.radius = GPS_RADIUS;
+    }
+
+    placesService.textSearch(req, function(results, status) {
+      searching = false;
+      if (
+        status !== google.maps.places.PlacesServiceStatus.OK ||
+        !results || !results.length
+      ) {
+        setDebug("Sem resultados");
+        renderResults([]);
+        return;
+      }
+      setDebug(results.length + " encontrados");
+      renderResults(rankResults(results, query));
+    });
+  }
+
+  /* ════════════════════════════════════
+     GPS — lógica original + AdvancedMarker
+  ════════════════════════════════════ */
+  function initGpsButton() {
+    btnNearMe.addEventListener("click", function() {
+
+      if (!navigator.geolocation) {
+        setDebug("Navegador não suporta geolocalização.");
+        return;
+      }
+
+      setDebug("Obtendo sua localização...", true);
+      btnNearMe.disabled = true;
+
+      navigator.geolocation.getCurrentPosition(
+
+        /* ✅ SUCESSO */
+        function(position) {
+          btnNearMe.disabled = false;
+
+          var lat      = position.coords.latitude;
+          var lng      = position.coords.longitude;
+          var accuracy = position.coords.accuracy || 0;
+
+          clearMyLocation();
+
+          currentUserLocation = { lat: lat, lng: lng };
+
+          var gpsPosition = new google.maps.LatLng(lat, lng);
+
+          /* ✅ Ponto azul GPS com AdvancedMarkerElement */
+          var gpsDot = document.createElement("div");
+          gpsDot.className = "gm-gps-dot";
+
+          myLocationMarker = new google.maps.marker.AdvancedMarkerElement({
+            map:      map,
+            position: gpsPosition,
+            title:    "Minha localização",
+            content:  gpsDot,
+            zIndex:   999
+          });
+
+          /* Círculo de precisão — Circle ainda usa setMap */
+          myLocationCircle = new google.maps.Circle({
+            map:           map,
+            center:        gpsPosition,
+            radius:        Math.max(20, Number(accuracy)),
+            fillColor:     "#4285f4",
+            fillOpacity:   0.12,
+            strokeColor:   "#4285f4",
+            strokeOpacity: 0.45,
+            strokeWeight:  1
+          });
+
+          btnNearMe.classList.add("is-active");
+          btnNearMe.title = "GPS ativo – clique para atualizar";
+
+          /* ✅ Centraliza exatamente na posição real */
+          map.setCenter(gpsPosition);
+          map.setZoom(ZOOM_GPS);
+
+          setDebug(
+            "GPS em " + lat.toFixed(6) + ", " + lng.toFixed(6) +
+            " · ±" + Math.round(accuracy) + "m"
+          );
+          setStatus(
+            "📍 " + lat.toFixed(5) + ", " + lng.toFixed(5) +
+            " · ±" + Math.round(accuracy) + "m"
+          );
+          setLabel("GPS ativo. Sua localização foi aplicada ao mapa.");
+
+          if (inputEl.value.trim()) {
+            runSearch(inputEl.value);
+          }
+        },
+
+        /* ✅ ERRO */
+        function(error) {
+          btnNearMe.disabled = false;
+          var msgs = {
+            1: "Permissão de localização negada.",
+            2: "Posição indisponível.",
+            3: "Tempo esgotado ao obter localização."
+          };
+          setDebug(msgs[error.code] || "Não foi possível obter sua localização.");
+        },
+
+        /* ✅ Opções — originais que funcionavam */
+        {
+          enableHighAccuracy: true,
+          timeout:            20000,
+          maximumAge:         0
+        }
+      );
+    });
+  }
+
+  /* ════════════════════════════════════
+     INIT MAPA
+     ✅ mapId obrigatório para AdvancedMarker
+  ════════════════════════════════════ */
+  function initMapV2() {
+    map = new google.maps.Map(document.getElementById("mapa-v2-canvas"), {
+      center:            DEFAULT_CENTER,
+      zoom:              ZOOM_DEFAULT,
+      mapId:             MAP_ID,          // ✅ obrigatório
+      streetViewControl: false,
+      mapTypeControl:    false,
+      fullscreenControl: true,
+      gestureHandling:   "greedy"
+    });
+
+    infoWindow    = new google.maps.InfoWindow();
+    placesService = new google.maps.places.PlacesService(map);
+
+    setDebug("Pronto");
+    setLabel("Digite para pesquisar");
+    setStatus("Mapa carregado");
+
+    btnSearch.addEventListener("click", function() { runSearch(inputEl.value); });
+
+    inputEl.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") { e.preventDefault(); runSearch(inputEl.value); }
+    });
+
+    initGpsButton();
+  }
+
+  /* ════════════════════════════════════
+     CARREGA SDK
+     ✅ Adiciona &libraries=places,marker
+  ════════════════════════════════════ */
+  (function loadSDK() {
+    if (!MAPS_KEY) {
+      setDebug("Chave do Google Maps ausente");
+      return;
+    }
+
+    window.initMapV2 = initMapV2;
+
+    var s     = document.createElement("script");
+    s.id      = "gm-sdk";
+    s.src     = "https://maps.googleapis.com/maps/api/js?key="
+                + encodeURIComponent(MAPS_KEY)
+                + "&libraries=places,marker&callback=initMapV2";
+    s.async   = true;
+    s.defer   = true;
+    s.onerror = function() { setDebug("Falha ao carregar Google Maps"); };
+    document.head.appendChild(s);
+  })();
+
+})();
+</script>
+{% endblock %}

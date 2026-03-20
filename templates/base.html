@@ -3,76 +3,122 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}RADAR LOCAL{% endblock %}</title>
+  <title>{% block title %}ROTA LOCAL{% endblock %}</title>
 
   <style>
-    body{font-family:system-ui;margin:0;background:#0b0d10;color:#e9eef5}
-    a{color:#8ad;text-decoration:none}
-    .wrap{max-width:1180px;margin:0 auto;padding:20px}
-    header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:16px;
-      gap:16px;
-      flex-wrap:wrap;
-      padding-bottom:14px;
-      border-bottom:1px solid #1b2330;
-    }
-    .brand{
-      font-size:20px;
-      font-weight:800;
-      color:#ffffff;
-      letter-spacing:.6px;
-    }
-    nav{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .card{background:#11151b;border:1px solid #1b2330;border-radius:12px;padding:16px}
-    .btn{display:inline-block;background:#2d6cdf;color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer}
-    .btn2{display:inline-block;background:transparent;color:#e9eef5;border:1px solid #2a3445;border-radius:10px;padding:10px 14px;cursor:pointer}
-    .error{border-left:6px solid #ef4444; padding:10px 12px; background:#fff; color:#111; border-radius:10px; margin:10px 0}
-    .ok{border-left:6px solid #22c55e; padding:10px 12px; background:#fff; color:#111; border-radius:10px; margin:10px 0}
-    .muted{opacity:.8}
-    input,select,textarea{background:#0b0d10;color:#e9eef5}
-    .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid #2a3445}
-    .badge-blue{border-color:#2d6cdf;color:#cfe0ff}
-    .badge-green{border-color:#22c55e;color:#c9f7d7}
-    .badge-red{border-color:#ef4444;color:#ffd1d1}
-    .badge-yellow{border-color:#f59e0b;color:#ffe6b6}
-    .hello{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:10px 12px;
-      border:1px solid #1b2330;
-      border-radius:10px;
-      background:#11151b;
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: system-ui; margin: 0; background: #0b0d10; color: #e9eef5; }
+    a { color: #8ad; text-decoration: none; }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 20px;
     }
 
-    @media (max-width: 780px){
-      header{
-        align-items:flex-start;
-      }
-      nav{
-        width:100%;
-      }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #1b2330;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .logo { height: 36px; }
+
+    .brand-text {
+      font-size: 18px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-block;
+      background: #2d6cdf;
+      color: #fff;
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+    }
+
+    .btn2 {
+      display: inline-block;
+      background: transparent;
+      color: #e9eef5;
+      border: 1px solid #2a3445;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+
+    .btn2:hover {
+      background: #11151b;
+      border-color: #4285f4;
+      color: #fff;
+    }
+
+    .nav-active {
+      background: #0d1a2e !important;
+      border-color: #4285f4 !important;
+      color: #7ab3ff !important;
+    }
+
+    .hello {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid #1b2330;
+      border-radius: 10px;
+      background: #11151b;
     }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <div class="brand">RADAR LOCAL</div>
+
+      <!-- LOGO -->
+      <a class="brand" href="/mapa-v2">
+        <img src="/static/logo.png" class="logo">
+        <span class="brand-text">ROTA LOCAL</span>
+      </a>
 
       <nav>
-        {% if current_user %}
-          <span class="hello">Bem-vindo ao RADAR, <strong>{{ current_user.name }}</strong></span>
 
-          <form method="post" action="/logout" style="display:inline; margin:0;">
+        <!-- BOTÃO ORIGINAL (AGORA COM ID) -->
+        <a id="btn-topo-gps"
+           class="btn2 {% if request.url.path == '/mapa-v2' %}nav-active{% endif %}"
+           href="#">📍 Rota Local</a>
+
+        {% if current_user %}
+          <span class="hello">
+            Bem-vindo, <strong>{{ current_user.name }}</strong>
+          </span>
+          <form method="post" action="/logout" style="display:inline;margin:0;">
             <button class="btn2" type="submit">Sair</button>
           </form>
         {% else %}
@@ -84,15 +130,28 @@
       </nav>
     </header>
 
-    {% if flashes %}
-      {% for f in flashes %}
-        <div class="{{ f.category }}">
-          <strong>{{ f.category|upper }}:</strong> {{ f.message }}
-        </div>
-      {% endfor %}
-    {% endif %}
-
     {% block content %}{% endblock %}
   </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const topoBtn = document.getElementById("btn-topo-gps");
+
+  if (topoBtn) {
+    topoBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+
+      const gpsBtn = document.getElementById("btn-near-me");
+
+      if (gpsBtn) {
+        gpsBtn.click();
+      } else {
+        window.location.href = "/mapa-v2";
+      }
+    });
+  }
+});
+</script>
+
 </body>
 </html>

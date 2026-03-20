@@ -2,7 +2,6 @@ from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from sqlalchemy.exc import IntegrityError
 import bcrypt
 
 from app.core.flash import flash
@@ -24,18 +23,74 @@ def _safe_text(value) -> str:
     return str(value).strip()
 
 
-def ensure_company_users_table(db: Session) -> None:
+def _redirect_register(company_id: int | None = None) -> RedirectResponse:
+    target = "/empresa/cadastrar"
+    if company_id:
+        target += f"?company_id={int(company_id)}"
+    return RedirectResponse(target, status_code=303)
+
+
+def _get_company_by_id(db: Session, company_id: int | None):
+    if not company_id:
+        return None
+    return db.query(Company).filter(Company.id == int(company_id)).first()
+
+
+def _find_user_company_link(db: Session, user_id: int):
+    return db.execute(
+        text(
+            """
+            SELECT company_id, role
+            FROM company_users
+            WHERE user_id = :uid
+            ORDER BY id ASC
+            LIMIT 1
+            """
+        ),
+        {"uid": int(user_id)},
+    ).fetchone()
+
+
+def _company_owner_user_id(db: Session, company_id: int):
+    row = db.execute(
+        text(
+            """
+            SELECT user_id
+            FROM company_users
+            WHERE company_id = :cid
+            ORDER BY id ASC
+            LIMIT 1
+            """
+        ),
+        {"cid": int(company_id)},
+    ).fetchone()
+    return int(row[0]) if row else None
+
+
+def _link_user_to_company(db: Session, company_id: int, user_id: int, role: str = "owner") -> None:
+    already = db.execute(
+        text(
+            """
+            SELECT 1
+            FROM company_users
+            WHERE company_id = :cid AND user_id = :uid
+            LIMIT 1
+            """
+        ),
+        {"cid": int(company_id), "uid": int(user_id)},
+    ).fetchone()
+
+    if already:
+        return
+
     db.execute(
         text(
             """
-            CREATE TABLE IF NOT EXISTS company_users (
-                id SERIAL PRIMARY KEY,
-                company_id INTEGER NOT NULL,
-                user_id INTEGER NOT NULL,
-                role VARCHAR(50) NOT NULL DEFAULT 'owner'
-            )
+            INSERT INTO company_users (company_id, user_id, role)
+            VALUES (:cid, :uid, :role)
             """
-        )
+        ),
+        {"cid": int(company_id), "uid": int(user_id), "role": role},
     )
     db.commit()
 
@@ -58,10 +113,7 @@ def company_register_page(
     db: Session = SessionLocal()
 
     try:
-        company = None
-
-        if company_id:
-            company = db.query(Company).filter(Company.id == int(company_id)).first()
+        company = _get_company_by_id(db, company_id)
 
         return tpl(
             request,
@@ -93,10 +145,9 @@ def company_register(
     db: Session = SessionLocal()
 
     try:
-        ensure_company_users_table(db)
-
         user = get_current_user(request)
 
+        company_id = int(company_id) if company_id else None
         email = _safe_text(email).lower()
         owner_name = _safe_text(owner_name)
         name = _safe_text(name)
@@ -108,26 +159,20 @@ def company_register(
 
         if not name:
             flash(request, "Informe o nome da empresa.", "error")
-            return RedirectResponse("/empresa/cadastrar", status_code=303)
+            return _redirect_register(company_id)
 
         if not email:
             flash(request, "Informe o email de contato.", "error")
-            return RedirectResponse("/empresa/cadastrar", status_code=303)
+            return _redirect_register(company_id)
 
         if not user:
             if not owner_name:
                 flash(request, "Informe seu nome para criar o acesso.", "error")
-                redirect_to = "/empresa/cadastrar"
-                if company_id:
-                    redirect_to += f"?company_id={company_id}"
-                return RedirectResponse(redirect_to, status_code=303)
+                return _redirect_register(company_id)
 
             if not password or len(password) < 4:
                 flash(request, "Crie uma senha com pelo menos 4 caracteres.", "error")
-                redirect_to = "/empresa/cadastrar"
-                if company_id:
-                    redirect_to += f"?company_id={company_id}"
-                return RedirectResponse(redirect_to, status_code=303)
+                return _redirect_register(company_id)
 
             existing_user = db.query(User).filter(User.email == email).first()
 
@@ -137,7 +182,9 @@ def company_register(
                     "Já existe uma conta com esse email. Faça login para assumir a empresa.",
                     "error",
                 )
-                redirect_target = f"/empresa/cadastrar?company_id={company_id}" if company_id else "/empresa/cadastrar"
+                redirect_target = "/empresa/cadastrar"
+                if company_id:
+                    redirect_target += f"?company_id={company_id}"
                 return RedirectResponse(f"/login?next={redirect_target}", status_code=303)
 
             hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
@@ -153,23 +200,29 @@ def company_register(
             db.commit()
             db.refresh(user)
 
-            request.session["user_id"] = user.id
+            request.session["user_id"] = int(user.id)
 
-        existing_link = db.execute(
-            text("SELECT 1 FROM company_users WHERE user_id = :uid LIMIT 1"),
-            {"uid": int(user.id)},
-        ).fetchone()
-
+        # já tem empresa e está tentando criar outra do zero
+        existing_link = _find_user_company_link(db, int(user.id))
         if existing_link and not company_id:
             flash(request, "Você já possui uma empresa vinculada.", "error")
             return RedirectResponse("/empresa/dashboard", status_code=303)
 
         if company_id:
-            company = db.query(Company).filter(Company.id == int(company_id)).first()
+            company = _get_company_by_id(db, company_id)
 
             if not company:
                 flash(request, "Empresa não encontrada.", "error")
-                return RedirectResponse("/empresa/cadastrar", status_code=303)
+                return _redirect_register(company_id)
+
+            owner_user_id = _company_owner_user_id(db, int(company.id))
+            if owner_user_id and int(owner_user_id) != int(user.id):
+                flash(
+                    request,
+                    "Esta empresa já está vinculada a outra conta. Entre em contato com o suporte/admin.",
+                    "error",
+                )
+                return RedirectResponse("/mapa", status_code=303)
 
             company.name = name
             company.email = email
@@ -182,29 +235,7 @@ def company_register(
 
             db.commit()
 
-            already_owner = db.execute(
-                text(
-                    """
-                    SELECT 1
-                    FROM company_users
-                    WHERE company_id = :cid AND user_id = :uid
-                    LIMIT 1
-                    """
-                ),
-                {"cid": int(company.id), "uid": int(user.id)},
-            ).fetchone()
-
-            if not already_owner:
-                db.execute(
-                    text(
-                        """
-                        INSERT INTO company_users (company_id, user_id, role)
-                        VALUES (:cid, :uid, 'owner')
-                        """
-                    ),
-                    {"cid": int(company.id), "uid": int(user.id)},
-                )
-                db.commit()
+            _link_user_to_company(db, int(company.id), int(user.id), "owner")
 
             flash(request, "Empresa vinculada à sua conta com sucesso.", "ok")
             return RedirectResponse("/empresa/dashboard", status_code=303)
@@ -224,35 +255,10 @@ def company_register(
         db.commit()
         db.refresh(company)
 
-        db.execute(
-            text(
-                """
-                INSERT INTO company_users (company_id, user_id, role)
-                VALUES (:cid, :uid, 'owner')
-                """
-            ),
-            {"cid": int(company.id), "uid": int(user.id)},
-        )
-        db.commit()
+        _link_user_to_company(db, int(company.id), int(user.id), "owner")
 
         flash(request, "Empresa cadastrada com sucesso.", "ok")
         return RedirectResponse("/empresa/dashboard", status_code=303)
-
-    except IntegrityError:
-        db.rollback()
-        flash(request, "Não foi possível concluir o cadastro. Verifique os dados informados.", "error")
-        redirect_to = "/empresa/cadastrar"
-        if company_id:
-            redirect_to += f"?company_id={company_id}"
-        return RedirectResponse(redirect_to, status_code=303)
-
-    except Exception:
-        db.rollback()
-        flash(request, "Erro interno ao concluir o cadastro da empresa.", "error")
-        redirect_to = "/empresa/cadastrar"
-        if company_id:
-            redirect_to += f"?company_id={company_id}"
-        return RedirectResponse(redirect_to, status_code=303)
 
     finally:
         db.close()

@@ -18,7 +18,9 @@ from app.routers.web_auth import router as web_auth_router
 from app.routers.web_store import router as web_store_router
 from app.routers.store_public import router as store_public_router
 from app.routers.stores_list import router as stores_list_router
-from app.routers.map_view import router as map_view_router
+# REMOVIDO mapa antigo
+# from app.routers.map_view import router as map_view_router
+from app.routers.map_v2 import router as map_v2_router
 
 # Routers API
 from app.routers.api_users import router as api_users_router
@@ -41,7 +43,7 @@ from app.routers.admin import router as admin_router
 # Pagamentos
 from app.routers.payment import router as payment_router
 
-app = FastAPI(title=os.getenv("APP_NAME", "RADAR LOCAL"))
+app = FastAPI(title=os.getenv("APP_NAME", "ROTA LOCAL"))
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -57,7 +59,7 @@ def on_startup():
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("SECRET_KEY", "radar-local-dev-secret"),
+    secret_key=os.getenv("SECRET_KEY", "rota-local-dev-secret"),
 )
 
 app.add_middleware(
@@ -96,7 +98,12 @@ app.include_router(web_auth_router)
 app.include_router(web_store_router)
 app.include_router(store_public_router)
 app.include_router(stores_list_router)
-app.include_router(map_view_router)
+
+# REMOVIDO mapa antigo
+# app.include_router(map_view_router)
+
+# ATIVO apenas mapa novo
+app.include_router(map_v2_router)
 
 app.include_router(api_users_router)
 app.include_router(api_products_router)
@@ -118,4 +125,4 @@ app.include_router(payment_router)
 
 @app.get("/health")
 def health():
-    return {"ok": True, "app": os.getenv("APP_NAME", "RADAR LOCAL")}
+    return {"ok": True, "app": os.getenv("APP_NAME", "ROTA LOCAL")}

@@ -1,307 +1,347 @@
-{% extends "base.html" %}
-{% block title %}RADAR LOCAL - Mapa de Lojas{% endblock %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mapa estilo Google Maps</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:Arial, sans-serif; }
+    body { width:100vw; height:100vh; overflow:hidden; background:#e8e0d8; }
 
-{% block content %}
+    /* MAPA DE FUNDO */
+    #map-bg {
+      position:fixed; inset:0;
+      background-color:#e8e0d8;
+      background-image:
+        linear-gradient(#c9bfb0 1px,transparent 1px),
+        linear-gradient(90deg,#c9bfb0 1px,transparent 1px);
+      background-size:120px 120px,120px 120px;
+      cursor:grab;
+      z-index:0;
+    }
 
-  <div class="card" style="margin-bottom:20px;">
-    <h1 style="margin-top:0;">Encontre fornecedores perto de você</h1>
+    .area-green { position:absolute; background:#c8dba8; z-index:1; border-radius:4px; }
+    .area-blue  { position:absolute; background:#a8c8e8; z-index:1; }
+    .area-building { position:absolute; background:#ddd6ca; z-index:1; border:1px solid #ccc4b8; }
 
-    <p class="muted" style="margin-bottom:0;">
-      Primeiro escolha a região no mapa. Depois informe o que você procura para encontrar empresas no RADAR LOCAL e também empresas externas disponíveis para futura importação.
-    </p>
+    .road-h { position:absolute; height:8px; left:0; right:0; background:#f5e6c8; z-index:2; }
+    .road-v { position:absolute; width:8px; top:0; bottom:0; background:#f5e6c8; z-index:2; }
+    .road-major-h { height:14px; background:#f0d080; z-index:3; }
+    .road-major-v { width:14px; background:#f0d080; z-index:3; }
+
+    .road-label {
+      position:absolute; font-size:11px; font-weight:500;
+      color:#3c4043; background:rgba(255,255,255,0.7);
+      padding:1px 4px; border-radius:2px; white-space:nowrap; z-index:10;
+    }
+
+    .map-pin { position:absolute; transform:translate(-50%,-100%); cursor:pointer; z-index:10; }
+
+    .info-window {
+      position:absolute; background:#fff; border-radius:8px;
+      box-shadow:0 2px 10px rgba(0,0,0,0.3); padding:10px 14px;
+      width:180px; font-size:13px; z-index:20;
+      transform:translate(-50%,calc(-100% - 10px));
+      left:50%; pointer-events:none;
+    }
+    .info-window strong { font-size:14px; display:block; margin-bottom:3px; }
+    .info-window span { color:#70757a; font-size:12px; }
+
+    /* SIDEBAR (ESQUERDA) */
+    #sidebar {
+      position:fixed; top:0; left:0; width:408px; height:100%;
+      z-index:100; display:flex; flex-direction:column; pointer-events:none;
+    }
+
+    #search-container { margin:10px 10px 0 10px; pointer-events:all; }
+
+    #search-box {
+      display:flex; align-items:center; background:#fff;
+      border-radius:24px; box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      padding:0 16px; height:48px; gap:12px;
+    }
+
+    #search-input {
+      flex:1; border:none; outline:none;
+      font-size:16px; color:#202124; background:transparent;
+    }
+    #search-input::placeholder { color:#9aa0a6; }
+
+    .icon-btn {
+      background:none; border:none; cursor:pointer; padding:6px;
+      border-radius:50%; display:flex; align-items:center;
+      justify-content:center; color:#5f6368;
+    }
+    .icon-btn:hover { background:#f1f3f4; }
+
+    #quick-actions {
+      display:flex; gap:8px; margin:10px 10px 0 10px;
+      pointer-events:all; overflow-x:auto; scrollbar-width:none;
+    }
+    #quick-actions::-webkit-scrollbar { display:none; }
+
+    .qa-chip {
+      background:#fff; border-radius:20px; border:none;
+      box-shadow:0 1px 4px rgba(0,0,0,0.25); padding:8px 14px;
+      cursor:pointer; white-space:nowrap; font-size:14px;
+      font-weight:500; color:#202124; pointer-events:all;
+    }
+    .qa-chip:hover { background:#f1f3f4; }
+
+    #suggestions-panel {
+      margin:10px 10px 0 10px; background:#fff;
+      border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      pointer-events:all; overflow:hidden;
+    }
+
+    .suggestion-item {
+      display:flex; align-items:center; gap:14px;
+      padding:12px 16px; cursor:pointer; transition:background 0.15s;
+    }
+    .suggestion-item:hover { background:#f1f3f4; }
+    .suggestion-item + .suggestion-item { border-top:1px solid #f1f3f4; }
+
+    .sug-icon {
+      width:36px; height:36px; border-radius:50%; background:#f1f3f4;
+      display:flex; align-items:center; justify-content:center; font-size:16px;
+    }
+    .sug-title { font-size:14px; font-weight:500; color:#202124; }
+    .sug-sub   { font-size:12px; color:#70757a; margin-top:2px; }
+
+    /* CONTROLES (DIREITA) */
+    #map-controls {
+      position:fixed; right:10px; bottom:120px;
+      display:flex; flex-direction:column; gap:8px; z-index:100;
+    }
+    .map-ctrl-group {
+      background:#fff; border-radius:4px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.3); overflow:hidden;
+    }
+    .map-ctrl-btn {
+      width:40px; height:40px; border:none; background:#fff;
+      cursor:pointer; font-size:22px; font-weight:300; color:#5f6368;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .map-ctrl-btn:hover { background:#f1f3f4; }
+    .map-ctrl-btn + .map-ctrl-btn { border-top:1px solid #e8eaed; }
+
+    #location-btn {
+      position:fixed; right:10px; bottom:70px;
+      width:40px; height:40px; background:#fff;
+      border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.3);
+      border:none; cursor:pointer; display:flex;
+      align-items:center; justify-content:center; z-index:100;
+    }
+
+    #top-right {
+      position:fixed; top:10px; right:10px;
+      display:flex; align-items:center; gap:8px; z-index:100;
+    }
+    .avatar {
+      width:32px; height:32px; border-radius:50%; background:#4285f4;
+      color:#fff; display:flex; align-items:center; justify-content:center;
+      font-size:14px; font-weight:600; cursor:pointer;
+      box-shadow:0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    #google-logo { position:fixed; bottom:22px; left:420px; z-index:100; }
+
+    #footer {
+      position:fixed; bottom:0; left:0; right:0; height:20px;
+      display:flex; align-items:center; padding:0 8px; gap:12px; z-index:100;
+    }
+    .footer-link {
+      font-size:11px; color:#3c4043; text-decoration:none;
+      background:rgba(255,255,255,0.7); padding:2px 4px; border-radius:2px;
+    }
+
+    @media (max-width:600px) {
+      #sidebar { width:100%; }
+      #suggestions-panel { display:none; }
+      #google-logo { left:10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- FUNDO DO MAPA -->
+  <div id="map-bg">
+    <!-- Áreas verdes -->
+    <div class="area-green" style="top:60px;left:500px;width:200px;height:150px;"></div>
+    <div class="area-green" style="top:300px;left:900px;width:160px;height:200px;"></div>
+    <div class="area-green" style="top:500px;left:300px;width:120px;height:100px;"></div>
+
+    <!-- Água -->
+    <div class="area-blue" style="top:400px;left:700px;width:200px;height:80px;border-radius:40px;"></div>
+
+    <!-- Edificações -->
+    <div class="area-building" style="top:80px;left:620px;width:60px;height:50px;"></div>
+    <div class="area-building" style="top:80px;left:690px;width:80px;height:50px;"></div>
+    <div class="area-building" style="top:140px;left:620px;width:150px;height:40px;"></div>
+
+    <!-- Ruas -->
+    <div class="road-h" style="top:80px;"></div>
+    <div class="road-h" style="top:200px;"></div>
+    <div class="road-h road-major-h" style="top:270px;"></div>
+    <div class="road-v" style="left:500px;"></div>
+    <div class="road-v road-major-v" style="left:600px;"></div>
+
+    <!-- Labels -->
+    <div class="road-label" style="top:256px;left:420px;">Av. Paulista</div>
+    <div class="road-label" style="top:390px;left:720px;color:#1a6ea0;font-style:italic;">Rio Pinheiros</div>
+
+    <!-- Pin principal -->
+    <div class="map-pin" style="top:270px;left:600px;">
+      <svg width="28" height="36" viewBox="0 0 28 36">
+        <path d="M14 0C6.27 0 0 6.27 0 14c0 9.63 14 22 14 22S28 23.63 28 14C28 6.27 21.73 0 14 0z" fill="#ea4335"/>
+        <circle cx="14" cy="14" r="6" fill="#fff"/>
+      </svg>
+      <div class="info-window">
+        <strong>São Paulo, SP</strong>
+        <span>Centro da cidade</span>
+      </div>
+    </div>
   </div>
 
-  <div class="card" style="margin-bottom:20px;">
-    <h2 style="margin-top:0;">Buscar lojas</h2>
-
-    <form method="get" action="/mapa">
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:16px;">
-        <div>
-          <label>País</label>
-          <input
-            type="text"
-            name="pais"
-            value="{{ filtros.pais if filtros else '' }}"
-            placeholder="Ex: Brasil"
-            style="width:100%; padding:10px; border-radius:10px; border:1px solid #2a3445;"
-          >
-        </div>
-
-        <div>
-          <label>Estado</label>
-          <input
-            type="text"
-            name="estado"
-            value="{{ filtros.estado if filtros else '' }}"
-            placeholder="Ex: SP"
-            style="width:100%; padding:10px; border-radius:10px; border:1px solid #2a3445;"
-          >
-        </div>
-
-        <div>
-          <label>Cidade</label>
-          <input
-            type="text"
-            name="cidade"
-            value="{{ filtros.cidade if filtros else '' }}"
-            placeholder="Ex: São Paulo"
-            style="width:100%; padding:10px; border-radius:10px; border:1px solid #2a3445;"
-          >
-        </div>
-
-        <div>
-          <label>Bairro</label>
-          <input
-            type="text"
-            name="bairro"
-            value="{{ filtros.bairro if filtros else '' }}"
-            placeholder="Ex: Centro"
-            style="width:100%; padding:10px; border-radius:10px; border:1px solid #2a3445;"
-          >
-        </div>
-
-        <div style="grid-column:1 / -1;">
-          <label>O que você procura?</label>
-          <input
-            type="text"
-            name="q"
-            value="{{ filtros.q if filtros else '' }}"
-            placeholder="Ex: peixe para lago, tilápia, ração, alevinos"
-            style="width:100%; padding:10px; border-radius:10px; border:1px solid #2a3445;"
-          >
-        </div>
-      </div>
-
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn" type="submit">Buscar</button>
-        <a class="btn2" href="/mapa">Limpar filtro</a>
-      </div>
-    </form>
-  </div>
-
-  <div class="card" style="margin-bottom:20px;">
-    <h2 style="margin-top:0;">Mapa da região</h2>
-
-    {% if mapa_error %}
-      <div class="error">
-        <strong>ERRO:</strong> {{ mapa_error }}
-      </div>
-    {% endif %}
-
-    {% if not current_user %}
-      <div class="error">
-        <strong>ATENÇÃO:</strong> Você pode visualizar o mapa e as empresas livremente, mas para ver o painel da loja ou traçar rota até a empresa é necessário entrar na sua conta.
-      </div>
-    {% endif %}
-
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
-
-    <div id="mapa-lojas" style="height:420px; border-radius:12px; overflow:hidden; border:1px solid #2a3445;"></div>
-
-    <p class="muted" style="margin-top:12px; margin-bottom:0;">
-      Região atual do mapa:
-      <strong>{{ map_center.label if map_center else "Brasil" }}</strong>
-    </p>
-  </div>
-
-  <div class="card" style="margin-bottom:20px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
-      <div>
-        <h2 style="margin:0;">Empresas do RADAR LOCAL</h2>
-        <p class="muted" style="margin:6px 0 0 0;">Empresas já cadastradas no portal.</p>
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div id="search-container">
+      <div id="search-box">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#5f6368">
+          <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </svg>
+        <input id="search-input" type="text" placeholder="Pesquise no Google Maps"/>
+        <button class="icon-btn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#4285f4">
+            <path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </svg>
+        </button>
       </div>
     </div>
 
-    {% if not search_ready %}
-      <p class="muted" style="margin-bottom:0;">
-        Defina sua região e preencha o campo <strong>“O que você procura?”</strong> para listar empresas.
-      </p>
-    {% elif lojas and lojas|length > 0 %}
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
-        {% for loja in lojas %}
-          <div class="card">
-            {% if loja.logo %}
-              <div style="margin-bottom:12px;">
-                <img
-                  src="/static/uploads/logos/{{ loja.logo }}"
-                  alt="Logo de {{ loja.name }}"
-                  style="width:80px; height:80px; object-fit:contain; border-radius:12px; background:#fff; padding:6px; border:1px solid #2a3445;"
-                >
-              </div>
-            {% endif %}
-
-            <h3 style="margin-top:0; margin-bottom:8px;">{{ loja.name }}</h3>
-
-            <p class="muted" style="margin:0 0 10px 0;">
-              {{ loja.description or "Fornecedor local cadastrado no RADAR LOCAL." }}
-            </p>
-
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
-              {% if loja.city %}
-                <span class="badge badge-blue">
-                  {{ loja.city }}{% if loja.state %} - {{ loja.state }}{% endif %}
-                </span>
-              {% endif %}
-
-              {% if loja.phone %}
-                <span class="badge badge-green">
-                  {{ loja.phone }}
-                </span>
-              {% endif %}
-            </div>
-
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              {% if current_user %}
-                <a class="btn" href="/loja/{{ loja.id }}">Ver painel da loja</a>
-                <a class="btn2" href="/rota-loja/{{ loja.id }}">Ir até a loja</a>
-              {% else %}
-                <a class="btn" href="/login?next=/loja/{{ loja.id }}">Ver painel da loja</a>
-                <a class="btn2" href="/login?next=/loja/{{ loja.id }}">Ir até a loja</a>
-              {% endif %}
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="muted" style="margin-bottom:0;">Nenhuma empresa interna encontrada com esse filtro.</p>
-    {% endif %}
-  </div>
-
-  <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
-      <div>
-        <h2 style="margin:0;">Empresas externas encontradas</h2>
-        <p class="muted" style="margin:6px 0 0 0;">Resultados externos prontos para futura importação ao RADAR LOCAL.</p>
-      </div>
+    <!-- Quick Actions -->
+    <div id="quick-actions">
+      <button class="qa-chip">Explorar</button>
+      <button class="qa-chip">Como chegar</button>
+      <button class="qa-chip">Salvo</button>
+      <button class="qa-chip">Novidades</button>
     </div>
 
-    {% if not search_ready %}
-      <p class="muted" style="margin-bottom:0;">
-        Ao pesquisar uma categoria, produto ou serviço, o sistema também buscará empresas externas na região selecionada.
-      </p>
-    {% elif empresas_externas and empresas_externas|length > 0 %}
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
-        {% for empresa in empresas_externas %}
-          <div class="card">
-            <h3 style="margin-top:0; margin-bottom:8px;">{{ empresa.name }}</h3>
-
-            <p class="muted" style="margin:0 0 10px 0;">
-              {{ empresa.description or "Empresa encontrada externamente e pronta para ser trazida ao RADAR LOCAL." }}
-            </p>
-
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
-              {% if empresa.category %}
-                <span class="badge badge-yellow">
-                  {{ empresa.category }}
-                </span>
-              {% endif %}
-
-              {% if empresa.city %}
-                <span class="badge badge-blue">
-                  {{ empresa.city }}{% if empresa.state %} - {{ empresa.state }}{% endif %}
-                </span>
-              {% endif %}
-
-              {% if empresa.phone %}
-                <span class="badge badge-green">
-                  {{ empresa.phone }}
-                </span>
-              {% endif %}
-            </div>
-
-            {% if empresa.address %}
-              <p class="muted" style="margin:0 0 12px 0;">
-                {{ empresa.address }}
-                {% if empresa.neighborhood %} - {{ empresa.neighborhood }}{% endif %}
-              </p>
-            {% endif %}
-
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              {% if current_user %}
-                <a class="btn" href="{{ empresa.import_url }}">Ver painel da loja</a>
-                <a class="btn2" href="{{ empresa.import_url }}">Ir até a loja</a>
-              {% else %}
-                <a class="btn" href="{{ empresa.import_url }}">Ver painel da loja</a>
-                <a class="btn2" href="{{ empresa.import_url }}">Ir até a loja</a>
-              {% endif %}
-            </div>
-          </div>
-        {% endfor %}
+    <!-- Sugestões -->
+    <div id="suggestions-panel">
+      <div class="suggestion-item">
+        <div class="sug-icon">🕐</div>
+        <div>
+          <div class="sug-title">Av. Paulista, 1000</div>
+          <div class="sug-sub">São Paulo, SP</div>
+        </div>
       </div>
-    {% else %}
-      <p class="muted" style="margin-bottom:0;">Nenhuma empresa externa encontrada com esse filtro.</p>
-    {% endif %}
+      <div class="suggestion-item">
+        <div class="sug-icon">📍</div>
+        <div>
+          <div class="sug-title">Parque Ibirapuera</div>
+          <div class="sug-sub">Parque · São Paulo, SP</div>
+        </div>
+      </div>
+      <div class="suggestion-item">
+        <div class="sug-icon">✈️</div>
+        <div>
+          <div class="sug-title">Aeroporto de Congonhas</div>
+          <div class="sug-sub">Aeroporto · São Paulo, SP</div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- CONTROLES -->
+  <div id="map-controls">
+    <div class="map-ctrl-group">
+      <button class="map-ctrl-btn" onclick="zoomIn()">+</button>
+      <button class="map-ctrl-btn" onclick="zoomOut()">−</button>
+    </div>
+  </div>
+
+  <button id="location-btn" title="Minha localização">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="#4285f4">
+      <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+    </svg>
+  </button>
+
+  <!-- AVATAR -->
+  <div id="top-right">
+    <div class="avatar">R</div>
+  </div>
+
+  <!-- LOGO SIMPLES -->
+  <div id="google-logo">
+    <span style="color:#4285f4;font-weight:700;font-size:18px;">G</span>
+    <span style="color:#ea4335;font-weight:700;font-size:18px;">o</span>
+    <span style="color:#fbbc04;font-weight:700;font-size:18px;">o</span>
+    <span style="color:#4285f4;font-weight:700;font-size:18px;">g</span>
+    <span style="color:#34a853;font-weight:700;font-size:18px;">l</span>
+    <span style="color:#ea4335;font-weight:700;font-size:18px;">e</span>
+  </div>
+
+  <!-- RODAPÉ -->
+  <div id="footer">
+    <a href="#" class="footer-link">Termos</a>
+    <a href="#" class="footer-link">Privacidade</a>
+    <a href="#" class="footer-link">Dados do mapa ©2024</a>
+  </div>
 
   <script>
-    const userLogged = {{ (current_user is not none)|tojson }};
+    let zoomLevel = 14;
+    let isDragging = false;
+    let startX, startY, offsetX = 0, offsetY = 0;
+    const mapBg = document.getElementById('map-bg');
 
-    const pontos = [
-      {% for p in pontos %}
-      {
-        id: {{ (p.id or "")|tojson }},
-        source: {{ (p.source or "")|tojson }},
-        name: {{ (p.name or "")|tojson }},
-        city: {{ (p.city or "")|tojson }},
-        state: {{ (p.state or "")|tojson }},
-        lat: parseFloat({{ (p.latitude or "")|tojson }}),
-        lng: parseFloat({{ (p.longitude or "")|tojson }}),
-        url: {{ (p.url or "#")|tojson }},
-        map_link: {{ (p.map_link or "#")|tojson }},
-        import_url: {{ (p.import_url or "#")|tojson }}
-      }{% if not loop.last %},{% endif %}
-      {% endfor %}
-    ];
-
-    const defaultLat = {{ (map_center.lat if map_center else -14.2350)|tojson }};
-    const defaultLng = {{ (map_center.lng if map_center else -51.9253)|tojson }};
-    const defaultZoom = {{ (map_center.zoom if map_center else 4)|tojson }};
-
-    const mapa = L.map("mapa-lojas").setView([defaultLat, defaultLng], defaultZoom);
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap"
-    }).addTo(mapa);
-
-    const pontosValidos = pontos.filter(p => !Number.isNaN(p.lat) && !Number.isNaN(p.lng));
-
-    if (pontosValidos.length > 0) {
-      const bounds = [];
-
-      pontosValidos.forEach(p => {
-        const marker = L.marker([p.lat, p.lng]).addTo(mapa);
-
-        let painelBtn = "";
-        let rotaBtn = "";
-
-        if (p.source === "portal") {
-          painelBtn = `<a href="${p.url}">Ver painel da loja</a>`;
-          rotaBtn = `<a href="/rota-loja/${p.id}">Ir até a loja</a>`;
-        } else {
-          painelBtn = `<a href="${p.import_url}">Ver painel da loja</a>`;
-          rotaBtn = `<a href="${p.import_url}">Ir até a loja</a>`;
-        }
-
-        marker.bindPopup(`
-          <strong>${p.name}</strong><br>
-          ${p.city}${p.state ? " - " + p.state : ""}<br><br>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            ${painelBtn}
-            ${rotaBtn}
-          </div>
-        `);
-
-        bounds.push([p.lat, p.lng]);
-      });
-
-      mapa.fitBounds(bounds, { padding: [30, 30] });
+    function applyZoom() {
+      const scale = Math.pow(1.15, zoomLevel - 14);
+      mapBg.style.transform = 'scale(' + scale + ') translate(' + offsetX + 'px,' + offsetY + 'px)';
+      mapBg.style.transition = 'transform 0.2s ease';
     }
-  </script>
 
-{% endblock %}
+    function zoomIn() {
+      if (zoomLevel < 20) { zoomLevel++; applyZoom(); }
+    }
+    function zoomOut() {
+      if (zoomLevel > 8) { zoomLevel--; applyZoom(); }
+    }
+
+    document.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      if (e.deltaY < 0) zoomIn();
+      else zoomOut();
+    }, { passive:false });
+
+    mapBg.addEventListener('mousedown', function(e) {
+      isDragging = true;
+      startX = e.clientX - offsetX;
+      startY = e.clientY - offsetY;
+      mapBg.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      offsetX = e.clientX - startX;
+      offsetY = e.clientY - startY;
+      const scale = Math.pow(1.15, zoomLevel - 14);
+      mapBg.style.transform = 'scale(' + scale + ') translate(' + offsetX + 'px,' + offsetY + 'px)';
+    });
+
+    document.addEventListener('mouseup', function() {
+      isDragging = false;
+      mapBg.style.cursor = 'grab';
+    });
+
+    // clique em sugestões preenche o campo
+    var suggestions = document.querySelectorAll('.suggestion-item');
+    suggestions.forEach(function(item) {
+      item.addEventListener('click', function() {
+        var title = item.querySelector('.sug-title').textContent;
+        document.getElementById('search-input').value = title;
+      });
+    });
+  </script>
+</body>
+</html>

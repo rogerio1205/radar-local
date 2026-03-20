@@ -15,20 +15,20 @@ def tpl(request: Request, name: str, context: dict | None = None, status_code: i
     return request.app.state.tpl(request, name, context, status_code)
 
 
-def ensure_company_users_table(db: Session) -> None:
-    db.execute(
+def _get_company_for_user(db: Session, user_id: int):
+    return db.execute(
         text(
             """
-            CREATE TABLE IF NOT EXISTS company_users (
-                id SERIAL PRIMARY KEY,
-                company_id INTEGER NOT NULL,
-                user_id INTEGER NOT NULL,
-                role VARCHAR(50) NOT NULL DEFAULT 'owner'
-            )
+            SELECT c.id, c.name, c.logo
+            FROM companies c
+            JOIN company_users cu ON cu.company_id = c.id
+            WHERE cu.user_id = :uid
+            ORDER BY cu.id ASC
+            LIMIT 1
             """
-        )
-    )
-    db.commit()
+        ),
+        {"uid": int(user_id)},
+    ).fetchone()
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
@@ -43,20 +43,7 @@ def empresa_dashboard(request: Request):
 
     db: Session = SessionLocal()
     try:
-        ensure_company_users_table(db)
-
-        empresa = db.execute(
-            text(
-                """
-                SELECT c.id, c.name, c.logo
-                FROM companies c
-                JOIN company_users cu ON cu.company_id = c.id
-                WHERE cu.user_id = :uid
-                LIMIT 1
-                """
-            ),
-            {"uid": int(user.id)},
-        ).fetchone()
+        empresa = _get_company_for_user(db, int(user.id))
 
         if not empresa:
             flash(request, "Você ainda não possui empresa vinculada.", "error")
