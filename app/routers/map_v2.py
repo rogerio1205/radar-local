@@ -27,8 +27,9 @@ def _get_google_maps_browser_key() -> str:
 def mapa_v2(request: Request):
     return tpl(
         request,
-        "mapa_v2.html",
+        "mapa_v2.html",  # <- vamos testar esse
         {
             "google_maps_js_key": _get_google_maps_browser_key(),
+            "debug_test": "FUNCIONOU"
         },
     )
