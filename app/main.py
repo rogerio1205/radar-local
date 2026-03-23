@@ -18,8 +18,10 @@ from app.routers.web_auth import router as web_auth_router
 from app.routers.web_store import router as web_store_router
 from app.routers.store_public import router as store_public_router
 from app.routers.stores_list import router as stores_list_router
+
 # REMOVIDO mapa antigo
 # from app.routers.map_view import router as map_view_router
+
 from app.routers.map_v2 import router as map_v2_router
 
 # Routers API
@@ -99,10 +101,7 @@ app.include_router(web_store_router)
 app.include_router(store_public_router)
 app.include_router(stores_list_router)
 
-# REMOVIDO mapa antigo
-# app.include_router(map_view_router)
-
-# ATIVO apenas mapa novo
+# SOMENTE MAPA V2
 app.include_router(map_v2_router)
 
 app.include_router(api_users_router)
@@ -125,4 +124,8 @@ app.include_router(payment_router)
 
 @app.get("/health")
 def health():
-    return {"ok": True, "app": os.getenv("APP_NAME", "ROTA LOCAL")}
+    return {
+        "ok": True,
+        "app": os.getenv("APP_NAME", "ROTA LOCAL"),
+        "google_key": os.getenv("GOOGLE_MAPS_JS_KEY")
+    }
