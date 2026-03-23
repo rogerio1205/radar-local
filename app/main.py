@@ -83,11 +83,13 @@ def tpl(request: Request, name: str, context: dict | None = None, status_code: i
 
     current_user = get_current_user(request)
 
+    # 🔥 GARANTE QUE A CHAVE SEMPRE VAI
     ctx.update(
         {
             "request": request,
             "flashes": pop_flashes(request),
             "current_user": current_user,
+            "google_maps_js_key": os.getenv("GOOGLE_MAPS_JS_KEY"),  # 🔥 AQUI
         }
     )
 
