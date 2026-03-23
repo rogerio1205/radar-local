@@ -799,55 +799,59 @@ infoWindow.setContent(
      INIT MAPA
      ✅ mapId obrigatório para AdvancedMarker
   ════════════════════════════════════ */
-  function initMapV2() {
-    map = new google.maps.Map(document.getElementById("mapa-v2-canvas"), {
-      center:            DEFAULT_CENTER,
-      zoom:              ZOOM_DEFAULT,
-      mapId:             MAP_ID,          // ✅ obrigatório
-      streetViewControl: false,
-      mapTypeControl:    false,
-      fullscreenControl: true,
-      gestureHandling:   "greedy"
-    });
+function initMapV2() {
+  map = new google.maps.Map(document.getElementById("mapa-v2-canvas"), {
+    center: DEFAULT_CENTER,
+    zoom: ZOOM_DEFAULT,
+    mapId: MAP_ID,
+    streetViewControl: false,
+    mapTypeControl: false,
+    fullscreenControl: true,
+    gestureHandling: "greedy"
+  });
 
-    infoWindow    = new google.maps.InfoWindow();
-    placesService = new google.maps.places.PlacesService(map);
+  // ✅ TUDO DENTRO DA FUNÇÃO
+  infoWindow    = new google.maps.InfoWindow();
+  placesService = new google.maps.places.PlacesService(map);
 
-    setDebug("Pronto");
-    setLabel("Digite para pesquisar");
-    setStatus("Mapa carregado");
+  setDebug("Pronto");
+  setLabel("Digite para pesquisar");
+  setStatus("Mapa carregado");
 
-    btnSearch.addEventListener("click", function() { runSearch(inputEl.value); });
+  btnSearch.addEventListener("click", function() {
+    runSearch(inputEl.value);
+  });
 
-    inputEl.addEventListener("keydown", function(e) {
-      if (e.key === "Enter") { e.preventDefault(); runSearch(inputEl.value); }
-    });
+  inputEl.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runSearch(inputEl.value);
+    }
+  });
 
-    initGpsButton();
-  }
+  initGpsButton();
+}
 
   /* ════════════════════════════════════
      CARREGA SDK
      ✅ Adiciona &libraries=places,marker
   ════════════════════════════════════ */
   (function loadSDK() {
-    if (!MAPS_KEY) {
-      setDebug("Chave do Google Maps ausente");
-      return;
-    }
+  if (!MAPS_KEY) {
+    setDebug("Chave do Google Maps ausente");
+    return;
+  }
 
-    window.initMapV2 = initMapV2;
+  window.initMapV2 = initMapV2;
 
-    var s     = document.createElement("script");
-    s.id      = "gm-sdk";
-    s.src     = "https://maps.googleapis.com/maps/api/js?key="
-                + encodeURIComponent(MAPS_KEY)
-                + "&libraries=places,marker&callback=initMapV2";
-    s.async   = true;
-    s.defer   = true;
-    s.onerror = function() { setDebug("Falha ao carregar Google Maps"); };
-    document.head.appendChild(s);
-  })();
+  var s = document.createElement("script");
+  s.src = "https://maps.googleapis.com/maps/api/js?key="
+          + encodeURIComponent(MAPS_KEY)
+          + "&libraries=places,marker&callback=initMapV2";
+  s.async = true;
+  s.defer = true;
+  document.head.appendChild(s);
+})();
 
 })();
 </script>
