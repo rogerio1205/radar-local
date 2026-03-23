@@ -12,24 +12,20 @@ def tpl(request: Request, name: str, context: dict | None = None, status_code: i
 
 
 def _get_google_maps_browser_key() -> str:
-    return (
-        os.getenv("GOOGLE_MAPS_JS_KEY")  # 🔥 sua variável correta
-        or os.getenv("GOOGLE_MAPS_BROWSER_KEY")
-        or os.getenv("GOOGLE_MAPS_JS_API_KEY")
-        or os.getenv("GOOGLE_MAPS_API_KEY")
-        or os.getenv("GOOGLE_PLACES_API_KEY")
-        or os.getenv("GOOGLE_API_KEY")
-        or ""
-    ).strip()
+    # FORÇA pegar exatamente a variável correta do Render
+    return os.getenv("GOOGLE_MAPS_JS_KEY", "").strip()
 
 
 @router.get("/mapa-v2", response_class=HTMLResponse)
 def mapa_v2(request: Request):
+    key = _get_google_maps_browser_key()
+
+    print("DEBUG GOOGLE KEY:", key)  # vai aparecer no log do Render
+
     return tpl(
         request,
-        "mapa_v2.html",  # <- vamos testar esse
+        "mapa_v2.html",
         {
-            "google_maps_js_key": _get_google_maps_browser_key(),
-            "debug_test": "FUNCIONOU"
+            "google_maps_js_key": key,
         },
     )
