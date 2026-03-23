@@ -13,7 +13,8 @@ def tpl(request: Request, name: str, context: dict | None = None, status_code: i
 
 def _get_google_maps_browser_key() -> str:
     return (
-        os.getenv("GOOGLE_MAPS_BROWSER_KEY")
+        os.getenv("GOOGLE_MAPS_JS_KEY")  # 🔥 sua variável correta
+        or os.getenv("GOOGLE_MAPS_BROWSER_KEY")
         or os.getenv("GOOGLE_MAPS_JS_API_KEY")
         or os.getenv("GOOGLE_MAPS_API_KEY")
         or os.getenv("GOOGLE_PLACES_API_KEY")
